@@ -1,0 +1,523 @@
+---
+title: "Final Project"
+author: "Mark Berman, Joel Kopp and Richard Wheeler"
+date: "7/23/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+### function that calculates average percent error using actual wins and predicted wins from test data ###
+calc_average_pct_error <- function(model){
+  test_predicted_wins <- predict(model, newdata = bbproj_tst)
+  abs_dif <- abs(test_predicted_wins - bbproj_tst$W)
+  avg_pct_error <- mean(abs_dif/test_predicted_wins) * 100
+  #data.frame(cbind(predicted_wins = test_predicted_wins, avg_pct_error = avg_pct_error))
+  list(predicted_wins = test_predicted_wins, avg_pct_error = avg_pct_error)
+}
+```
+
+```{r message=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+### function that plots actual wins versus predicted wins from test data
+plot_predicted_wins_versus_actual_wins <- function(model_name, predicted_wins, actual_wins, avg_pct_error){
+  xrange <- c(0,max(actual_wins+10))
+  yrange <- c(0,max(predicted_wins+10))
+  title <- paste(model_name, " : 2014 - 2016 Baseball Seasons")
+  sub <- paste("Average Percent Error: ", round(avg_pct_error,2), " %")
+  plot(predicted_wins ~ actual_wins, pch = 20, col = "grey", cex = 1.5, xlab = "Actual Wins", ylab = "Predicted Wins", main= title, sub=sub, xlim=xrange, ylim=yrange)
+  abline(a = 0, b = 1, col = "darkorange")
+}
+```
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+### function that plots fitted values versus residuals for training data ###
+plot_fitted_versus_residuals <- function(fitted_values, residuals, model_name){
+  plot(fitted(bic_model), resid(bic_model), col = "grey", pch = 20,
+  xlab = "Fitted", ylab = "Residuals", main = model_name)
+  abline(h = 0, col = "darkorange", lwd = 2)
+}
+```
+
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+### load training data and clean it up ###
+library(readr)
+bbproj_trn <- read_csv("bbproj_trn.csv",na = c("", "NA"))
+bbproj_trn$X1 <- NULL
+bbproj_trn$lgID <- NULL
+bbproj_trn$teamID <- NULL
+bbproj_trn$divID <- NULL
+bbproj_trn$Rank <- NULL
+bbproj_trn$G <- NULL
+bbproj_trn$Ghome <- NULL
+bbproj_trn$L <- NULL
+bbproj_trn$name <- NULL
+bbproj_trn$teamIDBR   <- NULL
+bbproj_trn$teamIDlahman45 <- NULL
+bbproj_trn$teamIDretro <- NULL
+bbproj_trn$DivWin <- as.factor(bbproj_trn$DivWin)
+bbproj_trn$WCWin <- as.factor(bbproj_trn$WCWin)
+bbproj_trn$LgWin <- as.factor(bbproj_trn$LgWin)
+bbproj_trn$WSWin <- as.factor(bbproj_trn$WSWin)
+bbproj_trn$franchID <- as.factor(bbproj_trn$franchID)
+bbproj_trn$park <- as.factor(bbproj_trn$park)
+```
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+### load test data and clean it up ###
+library(readr)
+bbproj_tst <- read_csv("bbproj_tst.csv",na = c("", "NA"))
+bbproj_tst$X1 <- NULL
+bbproj_tst$lgID <- NULL
+bbproj_tst$teamID <- NULL
+bbproj_tst$divID <- NULL
+bbproj_tst$Rank <- NULL
+bbproj_tst$G <- NULL
+bbproj_tst$Ghome <- NULL
+bbproj_tst$L <- NULL
+bbproj_tst$name <- NULL
+bbproj_tst$teamIDBR   <- NULL
+bbproj_tst$teamIDlahman45 <- NULL
+bbproj_tst$teamIDretro <- NULL
+bbproj_tst$DivWin <- as.factor(bbproj_tst$DivWin)
+bbproj_tst$WCWin <- as.factor(bbproj_tst$WCWin)
+bbproj_tst$LgWin <- as.factor(bbproj_tst$LgWin)
+bbproj_tst$WSWin <- as.factor(bbproj_tst$WSWin)
+bbproj_tst$franchID <- as.factor(bbproj_tst$franchID)
+bbproj_tst$park <- as.factor(bbproj_tst$park)
+```
+## Introduction ##
+
+
+
+## Salary as the Single Predictor of Wins
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+options(scipen=10)
+xrange <- c(min(bbproj_trn$salary-1000000),max(bbproj_trn$salary+1000000))
+yrange <- c(0,max(bbproj_trn$W+10))
+plot(bbproj_trn$W ~ bbproj_trn$salary, pch = 20, col = "grey", cex = 1.5, xlab = "Salary (US $)", ylab = "Wins", main= "Actual Salary vs Actual Wins (2000 - 2013)", xlim=xrange, ylim=yrange, type="p")
+abline(a = 81, b = 0, col = "darkorange")
+#legend("bottomright", c("training observations", "81 WINS"), lty = c(1, 2), lwd = 2, col = c("grey", "darkorange"))
+legend("bottomright", 
+        cex = 1.0, 
+        bty = "n", 
+        legend = c("training observations", "81 WINS"), 
+        text.col = c("grey", "darkorange"),
+        col = c("grey", "darkorange"), 
+        pch = c(16,15))
+```
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+salary_only_model <- lm(W ~ salary, data = bbproj_trn)
+summary(salary_only_model)
+```
+
+
+```{r message=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+### average percent error for the salary only model ###
+result <- calc_average_pct_error(salary_only_model)
+avg_pct_error_salary_only_model <- result$avg_pct_error
+predicted_wins_salary_only_model <- result$predicted_wins
+```
+
+
+
+```{r echo=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+### Plot predicted vs actual wins for the smaller step search aic model
+plot_predicted_wins_versus_actual_wins("Salary Only Model", predicted_wins_salary_only_model, bbproj_tst$W, avg_pct_error_salary_only_model)
+```
+
+Salary is a marginally significant in terms of predicting wins and losses.  The adjusted *$R^2$* from the above simple linear regression -- using training data from 2000 through 2013 is low.  Furthermore, the *average percent error* that compares actual wins versus predicted wins from the the test data (2014 through 2016) is high.
+
+We can do better.
+
+
+## The search for Better Multivariate Linear Regression Models ##
+
+
+### Candidate Multivariate Linear Regression Models ###
+
+```{r}
+library(faraway)
+scope <- W ~ R + AB + H + X2B + X3B + HR + BB + SO + SB + CS + HBP + SF + RA + ER + ERA + CG + SHO + SV + IPouts + HA  + HRA + BBA + SOA + E + DP + FP + attendance + BPF + PPF + salary + RBI + GIDP + IBB + TB + SLG + OBP + OPS + WHIP + BABIP + RC + X1B + uBB + wOBA
+formula <- formula(scope)
+start_model <- lm(formula, data= bbproj_trn)
+n <- length(resid(start_model))
+step_search_start_model <- lm(W ~ 1, data= bbproj_trn)
+```
+```{r}
+### Backwards Search: BIC Model
+bic_model <- step(start_model,  direction = "backward", k = log(n),trace = 0)
+summary(bic_model)
+```
+
+```{r}
+### Backwards Search: AIC Model
+aic_model <-  step(start_model,  direction = "backward", trace = 0)
+summary(aic_model)
+
+```
+
+```{r}
+### Step Search: BIC Model
+step_bic_model <- step(step_search_start_model, scope = scope, direction = "both",k = log(n),trace = 0)
+summary(step_bic_model)
+```
+
+```{r}
+###W Step Search: AIC Model ### 
+step_aic_model <- step(step_search_start_model, scope = scope, direction = "both", trace = 0)
+summary(step_aic_model)
+```
+
+### Evaluation and Refinement of the Candidate Models ###
+
+
+```{r}
+### Breusch-Pagan Test on Backwards Search - BIC Model
+library(lmtest)
+bptest(bic_model)
+```
+
+```{r}
+plot_fitted_versus_residuals(fitted(bic_model), resid(bic_model), "Backwards Search - BIC Model")
+```
+
+
+```{r}
+### Shapiro - Wilk Normality Test on Backwards Search - BIC Model ###
+shapiro.test(resid(bic_model))
+```
+
+```{r}
+qqnorm(resid(bic_model), main = "Normal Q-Q Plot, Backwards Search - BIC Model", col = "darkgrey")
+qqline(resid(bic_model), col = "dodgerblue", lwd = 2)
+```
+
+```{r}
+### Do the number of standard residuals greater than 2 exceed 5% of the total observations -- Backwards Search: BIC Model
+std_resid_bic_model <- rstandard(bic_model)[abs(rstandard(bic_model)) > 2]
+is_std_resid_gt_five_percent_bic_model <- length(std_resid_bic_model) / n > 0.05
+ifelse(is_std_resid_gt_five_percent_bic_model,"Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs")
+```
+
+
+
+```{r}
+#### Backwards Search - BIC Model: Unusual Observtions -- Cooks Distance > 4 / n
+cd_bic_model <- cooks.distance(bic_model) > 4 / n
+print(paste("Number of Influential Observations: ", sum(cd_bic_model)))
+```
+
+```{r}
+bbproj_trn[which(cd_bic_model),]
+```
+
+```{r}
+### VIF > 5 for Backwards Search: BIC Model Coefficients
+library(faraway)
+vif_bic_model <- vif(bic_model)
+vif_bic_model[which(vif_bic_model > 5)]
+```
+
+```{r}
+library(caret)
+bic_model_high_vif_cols <- c("R", "AB", "H", "BB", "SO", "RA", "E", "FP", "BABIP", "RC")
+indices_to_drop <- findCorrelation(cor(bbproj_trn[,c(bic_model_high_vif_cols)]), cutoff = 0.6)
+vars_to_drop <- bic_model_high_vif_cols[indices_to_drop]
+vars_to_drop
+```
+
+```{r}
+
+smaller_bic_model <-  lm(W ~ AB  + BB + SO + SF + RA + CG + SV + IPouts +  BBA + BABIP, data = bbproj_trn)
+summary(smaller_bic_model)
+```
+
+```{r}
+library(lmtest)
+library(faraway)
+vif(smaller_bic_model)
+print(paste("Number of coefficients with VIF > 5 : ", sum(vif(smaller_bic_model) > 5)))
+bptest(smaller_bic_model)
+shapiro.test(resid(smaller_bic_model))
+std_resid_bic_model <- rstandard(bic_model)[abs(rstandard(smaller_bic_model)) > 2]
+is_std_resid_gt_five_percent_bic_model <- length(std_resid_bic_model) / n > 0.05
+ifelse(is_std_resid_gt_five_percent_bic_model,"Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs")
+cd_smaller_bic_model <- cooks.distance(smaller_bic_model) > 4 / n
+print(paste("Number of Influential Observations: ", sum(cd_smaller_bic_model)))
+```
+
+
+
+
+```{r}
+### Breusch-Pagan Test on AIC Model
+library(lmtest)
+bptest(aic_model)
+```
+
+```{r}
+plot_fitted_versus_residuals(fitted(aic_model), resid(aic_model), "Backwards Search - AIC Model")
+```
+
+```{r}
+### Shapiro - Wilk Normality Test on Backwards Search - AIC Model ###
+shapiro.test(resid(aic_model))
+```
+
+```{r}
+qqnorm(resid(aic_model), main = "Normal Q-Q Plot, Backwards Search - AIC Model", col = "darkgrey")
+qqline(resid(aic_model), col = "dodgerblue", lwd = 2)
+```
+
+```{r}
+### Do the number of standard residuals greater than 2 exceed 5% of the total observations -- Backwards Search: AIC Model
+std_resid_aic_model <- rstandard(aic_model)[abs(rstandard(aic_model)) > 2]
+is_std_resid_gt_five_percent_aic_model <- length(std_resid_aic_model) / n > 0.05
+ifelse(is_std_resid_gt_five_percent_aic_model,"Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs")
+```
+
+```{r}
+####  Backwards Search - AIC Model: Unusual Observtions -- Cooks Distance > 4 / n
+cd_aic_model <- cooks.distance(aic_model) > 4 / n
+print(paste("Number of Influential Observations: ", sum(cd_aic_model)))
+```
+
+```{r}
+bbproj_trn[which(cd_aic_model),]
+```
+
+```{r}
+### VIF > 5 for Backwards Search: AIC Model Coefficients
+library(faraway)
+vif_aic_model <- vif(aic_model)
+vif_aic_model[which(vif_aic_model > 5)]
+```
+
+
+
+
+```{r}
+library(caret)
+aic_model_high_vif_cols <- c("R", "AB", "H", "X2B", "X3B", "HR", "BB", "SO", "SF", "RA", "ER", "IPouts", "E", "FP","BPF", "PPF", "IBB", "OBP", "BABIP", "RC", "wOBA")
+indices_to_drop <- findCorrelation(cor(bbproj_trn[,c(aic_model_high_vif_cols)]), cutoff = 0.6)
+vars_to_drop <- aic_model_high_vif_cols[indices_to_drop]
+vars_to_drop
+```
+
+```{r}
+#smaller_aic_model <-  lm(formula = W ~  AB + HR + BB + SO + CS + ER + CG + SHO + SV + IPouts + BBA + FP + GIDP + IBB +  BABIP, data = bbproj)
+smaller_aic_model <-  lm(formula = W ~  HR + BB + SO + ER + CG + SHO + SV + IPouts + BBA + FP + GIDP + BABIP, data = bbproj_trn)
+summary(smaller_aic_model)
+```
+
+```{r}
+library(lmtest)
+library(faraway)
+vif(smaller_aic_model)
+print(paste("Number of coefficients with VIF > 5 : ", sum(vif(smaller_aic_model) > 5)))
+bptest(smaller_aic_model)
+shapiro.test(resid(smaller_aic_model))
+std_resid_aic_model <- rstandard(smaller_aic_model)[abs(rstandard(smaller_aic_model)) > 2]
+is_std_resid_gt_five_percent_aic_model <- length(std_resid_aic_model) / n > 0.05
+ifelse(is_std_resid_gt_five_percent_aic_model,"Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs")
+cd_smaller_aic_model <- cooks.distance(smaller_aic_model) > 4 / n
+print(paste("Number of Influential Observations: ", sum(cd_smaller_bic_model)))
+```
+
+```{r}
+### Breusch-Pagan Test on Step BIC Model
+bptest(step_bic_model)
+
+```
+
+```{r}
+plot_fitted_versus_residuals(fitted(step_bic_model), resid(step_bic_model), "Step Search - BIC Model")
+```
+
+```{r}
+### Shapiro - Wilk Normality Test on Step Search - BIC Model ###
+shapiro.test(resid(step_bic_model))
+```
+
+```{r}
+qqnorm(resid(step_bic_model), main = "Normal Q-Q Plot, Step Search - BIC Model", col = "darkgrey")
+qqline(resid(step_bic_model), col = "dodgerblue", lwd = 2)
+```
+
+
+```{r}
+### Do the number of standard residuals greater than 2 exceed 5% of the total observations -- Step Search: BIC Model
+std_resid_step_bic_model <- rstandard(step_bic_model)[abs(rstandard(step_bic_model)) > 2]
+is_std_resid_gt_five_percent__step_bic_model <- length(std_resid_step_bic_model) / n > 0.05
+ifelse(is_std_resid_gt_five_percent__step_bic_model,"Exceeds 5% of Obs", "Does Not Exceed 5% of Obs")
+```
+
+```{r}
+####  Step Search - BIC Model: Unusual Observtions -- Cooks Distance > 4 / n
+cd_step_bic_model <- cooks.distance(step_bic_model) > 4 / n
+print(paste("Number of Influential Observations: ", sum(cd_step_bic_model)))
+```
+
+```{r}
+bbproj_trn[which(cd_step_bic_model),]
+```
+
+```{r}
+### VIF > 5 for Step Search: BIC Model Coefficients
+library(faraway)
+vif_step_bic_model <- vif(step_bic_model)
+vif_step_bic_model[which(vif_step_bic_model > 5)]
+```
+
+```{r}
+smaller_step_bic_model <- lm(formula = W ~ SV + R + RA + SHO + CG + X3B + IPouts + AB + salary, data = bbproj_trn)
+summary(smaller_step_bic_model)
+```
+
+```{r}
+library(lmtest)
+library(faraway)
+vif(smaller_step_bic_model)
+print(paste("Number of coefficients with VIF > 5 : ", sum(vif(smaller_step_bic_model) > 5)))
+bptest(smaller_step_bic_model)
+shapiro.test(resid(smaller_step_bic_model))
+std_resid_step_bic_model <- rstandard(smaller_step_bic_model)[abs(rstandard(smaller_step_bic_model)) > 2]
+is_std_resid_gt_five_percent_step_bic_model <- length(std_resid_step_bic_model) / n > 0.05
+ifelse(is_std_resid_gt_five_percent_step_bic_model,"Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs")
+cd_smaller_step_bic_model <- cooks.distance(smaller_step_bic_model) > 4 / n
+print(paste("Number of Influential Observations: ", sum(cd_smaller_step_bic_model)))
+```
+
+```{r}
+### Breusch-Pagan Test on Step AIC Model
+bptest(step_aic_model)
+```
+
+```{r}
+plot_fitted_versus_residuals(fitted(step_aic_model), resid(step_aic_model), "Step Search - AIC Model")
+```
+
+```{r}
+### Shapiro - Wilk Normality Test on Step Search - AIC Model ###
+shapiro.test(resid(step_aic_model))
+```
+
+```{r}
+qqnorm(resid(step_aic_model), main = "Normal Q-Q Plot, Step Search - AIC Model", col = "darkgrey")
+qqline(resid(step_aic_model), col = "dodgerblue", lwd = 2)
+```
+
+```{r}
+### Do the number of standard residuals greater than 2 exceed 5% of the total observations -- Step Search: AIC Model
+std_resid_step_aic_model <- rstandard(step_aic_model)[abs(rstandard(step_aic_model)) > 2]
+is_std_resid_gt_five_percent__step_aic_model <- length(std_resid_step_aic_model) / n > 0.05
+ifelse(is_std_resid_gt_five_percent__step_aic_model,"Exceeds 5% of Obs", "Does Not Exceed 5% of Obs")
+```
+
+
+```{r}
+####  Step Search - AIC Model: Unusual Observtions -- Cooks Distance > 4 / n
+cd_step_aic_model <- cooks.distance(step_aic_model) > 4 / n
+print(paste("Number of Influential Observations: ", sum(cd_step_aic_model)))
+```
+
+```{r}
+bbproj_trn[which(cd_step_aic_model),]
+```
+```{r}
+### VIF > 5 for Step Search: AIC Model Coefficients
+library(faraway)
+vif_step_aic_model <- vif(step_aic_model)
+vif_step_aic_model[which(vif_step_aic_model > 5)]
+```
+
+
+```{r}
+smaller_step_aic_model <- lm(formula = W ~ SV + R + SHO + CG + X3B + IPouts + BBA + HRA + SOA, data = bbproj_trn)
+summary(smaller_step_aic_model)
+```
+
+```{r}
+library(lmtest)
+library(faraway)
+vif(smaller_step_aic_model)
+print(paste("Number of coefficients with VIF > 5 : ",sum(vif(smaller_step_aic_model) > 5)))
+bptest(smaller_step_aic_model)
+shapiro.test(resid(smaller_step_aic_model))
+std_resid_step_aic_model <- rstandard(smaller_step_aic_model)[abs(rstandard(smaller_step_aic_model)) > 2]
+is_std_resid_gt_five_percent_step_aic_model <- length(std_resid_step_aic_model) / n > 0.05
+ifelse(is_std_resid_gt_five_percent_step_aic_model,"Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs")
+cd_smaller_step_aic_model <- cooks.distance(smaller_step_aic_model) > 4 / n
+print(paste("Number of Influential Observations: ", sum(cd_smaller_step_aic_model)))
+```
+
+
+### Validate Model Effectiveness Using Test Data  ###
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+### average percent error for the smaller backwards search bic model ###
+result <- calc_average_pct_error(smaller_bic_model)
+avg_pct_error_smaller_bic_model <- result$avg_pct_error
+predicted_wins_smaller_bic_model <- result$predicted_wins
+```
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+### Plot predicted vs actual wins for the smaller step search bic model
+plot_predicted_wins_versus_actual_wins("Smaller Backwards Search BIC Model", predicted_wins_smaller_bic_model, bbproj_tst$W, avg_pct_error_smaller_bic_model)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+### average percent error for the smaller backwards search aic model ###
+result <- calc_average_pct_error(smaller_aic_model)
+avg_pct_error_smaller_aic_model <- result$avg_pct_error
+predicted_wins_smaller_aic_model <- result$predicted_wins
+```
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+### Plot predicted vs actual wins for the smaller step search aic model
+plot_predicted_wins_versus_actual_wins("Smaller Backwards Search AIC Model", predicted_wins_smaller_aic_model, bbproj_tst$W, avg_pct_error_smaller_aic_model)
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+### average percent error for the smaller step search bic model ###
+result <- calc_average_pct_error(smaller_step_bic_model)
+avg_pct_error_smaller_step_bic_model <- result$avg_pct_error
+predicted_wins_smaller_step_bic_model <- result$predicted_wins
+```
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+### Plot predicted vs actual wins for the smaller step search bic model
+plot_predicted_wins_versus_actual_wins("Smaller Step Search BIC Model", predicted_wins_smaller_step_bic_model, bbproj_tst$W, avg_pct_error_smaller_step_bic_model)
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+### average percent error for the smaller step search aic model ###
+result <- calc_average_pct_error(smaller_step_aic_model)
+avg_pct_error_smaller_step_aic_model <- result$avg_pct_error
+predicted_wins_smaller_step_aic_model <- result$predicted_wins
+```
+
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+### Plot predicted vs actual wins for the smaller step search aic model
+plot_predicted_wins_versus_actual_wins("Smaller Step Search AIC Model", predicted_wins_smaller_step_aic_model, bbproj_tst$W, avg_pct_error_smaller_step_aic_model)
+```
+
+## And the The Winning Model Is! ##
