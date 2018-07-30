@@ -609,4 +609,105 @@ rmse_smaller_step_aic_model <- result$rmse
 plot_predicted_wins_versus_actual_wins("Smaller Step Search AIC Model", predicted_wins_smaller_step_aic_model, bbproj_tst$W, avg_pct_error_smaller_step_aic_model,rmse_smaller_step_aic_model)
 ```
 
+***
+
+## Logistic Modeling and Prediction of Division Winners
+
+### Salary as a Predictor for Division Winners
+
+Let's turn our attention to logistic regression and our ability to classify and predict division winners using our team predictor set.  First, let's see how well salary alone can predict pennants.
+
+```{r}
+salary_only_model <- glm(DivWin ~ salary, data = bbproj_trn, family = binomial)
+(salary_only_summary = summary(salary_only_model))
+plot(as.numeric(DivWin) - 1 ~ salary, data = bbproj_trn, 
+     pch = 20, 
+     main = "Probability of Buying a Division Winner",
+     ylab = "Probability of Winning Division", 
+     xlab = "Team Salary ($)",  
+     xlim = c(0, 3e8))
+curve(predict(salary_only_model, data.frame(salary = x), type = "response"), 
+      add = TRUE, 
+      col = "tomato", 
+      lty = 2,
+      lwd = 2)
+```
+
+Graphically, there seems to be a moderate influence on a team's salary and their chances of taking home a division crown.  Indeed, our Wald test for `salary` alone yields a p-value of `r salary_only_summary$coefficients["salary", "Pr(>|z|)"]`, allowing us to reject the null hypothesis
+($H_0 : \beta_{salary} = 0$) for any reasonable value for $\alpha$.  So what happens when we look at our salary model's misclassification rate?
+
+```{r}
+salary_prediction <- ifelse(predict(salary_only_model, bbproj_tst, type = "response") > 0.5, "Y", "N")
+(prevalence = table(bbproj_tst$DivWin) / nrow(bbproj_tst))
+(salary_misclass = mean(salary_prediction != bbproj_tst$DivWin))
+```
+
+First, let's examine prevalence of division winners.  We see that `r prevalence[2] * 100`% of the teams were division winners, which makes sense, since there are 6 divisions and 30 MLB teams, therefore you will only have 6 division winners per year.  Our salary model has a misclassification rate of `r salary_misclass`, which is worse than our prevalence.  We would have a better misclassification rate if we simply stated that there are no division winners!  We can certainly do better than this.
+
+## Candidate Logistic Regression Models
+
+We will begin our search for a better classifier by setting up an initial logisitc regression model contain all of the predictors we would like to evaluate.  Then, we will proceed to eliminate predictors using backwards, forwards, and stepwise AIC and BIC searches.
+
+```{r warning=FALSE}
+scope <- DivWin ~ W + R + AB + H + X2B + X3B + HR + BB + SO + SB + CS + HBP + SF + RA + ER + ERA + CG + SHO + SV + IPouts + HA  + HRA + BBA + SOA + E + DP + FP + attendance + BPF + PPF + salary + RBI + GIDP + IBB + TB + SLG + OBP + OPS + WHIP + BABIP + RC + X1B + uBB + wOBA
+formula <- formula(scope)
+start_model <- glm(formula, data = bbproj_trn, family = binomial)
+n <- length(resid(start_model))
+```
+
+### Backwards Search: BIC Model
+
+```{r warning=FALSE}
+bic_model <- step(start_model, direction = "backward", k = log(n), trace = 0)
+summary(bic_model)
+```
+
+Our backwards search using BIC yields the following logistic model
+
+\[
+\log \bigg(\frac{P[DivWin = 1]}{1 - P[DivWin = 1]} \bigg) = \beta_0 + \beta_W W + \beta_{AB} AB + \beta_H H + \beta_{HR} HR + \beta_{BB} BB + \beta_{HBP} HBP + \beta_{IBB} IBB + \beta_{SLG} SLG + \beta_{OBP} OBP + \beta_{wOBA} wOBA
+\]
+
+where the log odds of a team winning their division is dependent upon wins, at bats, hits, home runs, walks, hits by pitch, intentional walks, slugging percentage, on-base percentage, and weighted on-base average.
+
+#### Diagnostics: BIC Model
+
+Next, we will evaluate this model using a confusion matrix and calculating it sensitivity, specificity, and its misclassification rate.
+
+```{r}
+bic_model <- glm(DivWin ~ W + AB + H + HR + BB + HBP + IBB + SLG + OBP + wOBA, family = binomial, data = bbproj_trn)
+
+bic_prediction <- ifelse(predict(bic_model, bbproj_tst, type = "response") > 0.5, "Y", "N")
+
+(bic_misclass = mean(bic_prediction != bbproj_tst$DivWin))
+
+(bic_conf_matrix = table(prediction = bic_prediction, actual = bbproj_tst$DivWin))
+
+(bic_sensitivity = bic_conf_matrix[2, 2] / sum(bic_conf_matrix[, 2]))
+
+(bic_specificity = bic_conf_matrix[1, 1] / sum(bic_conf_matrix[, 1]))
+```
+
+Here, we beat the salary only model, and our prevalence, with a misclassification rate of `r round(bic_misclass, 3)`.  Our specificity looks great for our backward BIC model at `r round(bic_specificity, 3)`.  Our `r bic_conf_matrix[1, 2]` false negatives could come down, however, with an adjustment to our cutoff value.
+
+#### Reset Cutoff to 0.25
+
+Let's start with a cutoff of 0.25:
+
+```{r}
+bic_prediction_25 <- ifelse(predict(bic_model, bbproj_tst, type = "response") > 0.25, "Y", "N")
+
+(bic_misclass_25 = mean(bic_prediction_25 != bbproj_tst$DivWin))
+
+(bic_conf_matrix_25 = table(prediction = bic_prediction_25, actual = bbproj_tst$DivWin))
+
+(bic_sensitivity_25 = bic_conf_matrix_25[2, 2] / sum(bic_conf_matrix_25[, 2]))
+
+(bic_specificity_25 = bic_conf_matrix_25[1, 1] / sum(bic_conf_matrix_25[, 1]))
+```
+
+Interestingly, our misclassification rate went down with our cutoff adjustment to `r round(bic_misclass_25, 3)`.  Additionally, our sensitivity went up significantly (`r round (bic_sensitivity_25, 3)`) and we only had a modest reduction in specificity (`r round(bic_specificity_25, 3)`).  This model looks to be exceptionally adept at predicting division winners, and `salary` is not even a predictor!
+
+***
+
 ## And the The Winning Model Is! ##
