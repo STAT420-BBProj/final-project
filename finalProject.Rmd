@@ -633,7 +633,7 @@ curve(predict(salary_only_model, data.frame(salary = x), type = "response"),
       lwd = 2)
 ```
 
-Graphically, there seems to be a moderate influence on a team's salary and their chances of taking home a division crown.  Indeed, our Wald test for `salary` alone yields a p-value of `r salary_only_summary$coefficients["salary", "Pr(>|z|)"]`, allowing us to reject the null hypothesis
+Graphically, a team's payroll seems to be moderately influential in predicting their chances of taking home a division crown.  Indeed, our Wald test for `salary` alone yields a p-value of `r salary_only_summary$coefficients["salary", "Pr(>|z|)"]`, allowing us to reject the null hypothesis
 ($H_0 : \beta_{salary} = 0$) for any reasonable value for $\alpha$.  So what happens when we look at our salary model's misclassification rate?
 
 ```{r}
@@ -706,7 +706,7 @@ bic_prediction_25 <- ifelse(predict(bic_model, bbproj_tst, type = "response") > 
 (bic_specificity_25 = bic_conf_matrix_25[1, 1] / sum(bic_conf_matrix_25[, 1]))
 ```
 
-Interestingly, our misclassification rate went down with our cutoff adjustment to `r round(bic_misclass_25, 3)`.  Additionally, our sensitivity went up significantly (`r round (bic_sensitivity_25, 3)`) and we only had a modest reduction in specificity (`r round(bic_specificity_25, 3)`).  This model looks to be exceptionally adept at predicting division winners, and `salary` is not even a predictor!
+Interestingly, our misclassification rate went down with our cutoff adjustment to `r round(bic_misclass_25, 3)`.  Additionally, our sensitivity went up significantly (`r round (bic_sensitivity_25, 3)`) and we only had a modest reduction in specificity (`r round(bic_specificity_25, 3)`).  This model looks to be exceptionally adept at classifying division winners, and `salary` is not even a predictor!
 
 ***
 
