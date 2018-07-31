@@ -5,6 +5,8 @@ date: "7/23/2018"
 output: 
   html_document:
      toc: yes
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -646,68 +648,246 @@ First, let's examine prevalence of division winners.  We see that `r prevalence[
 
 ## Candidate Logistic Regression Models
 
-We will begin our search for a better classifier by setting up an initial logisitc regression model contain all of the predictors we would like to evaluate.  Then, we will proceed to eliminate predictors using backwards, forwards, and stepwise AIC and BIC searches.
+We will begin our search for a better classifier by setting up an initial logisitc regression model contain all of the predictors we would like to evaluate.  Then, we will proceed to eliminate predictors using backwards, forwards, and stepwise AIC and BIC searches.  See Appendix C for a complete evaluation of all of the models.  The following will detail the methodology using our best candiate model.
 
 ```{r warning=FALSE}
 scope <- DivWin ~ W + R + AB + H + X2B + X3B + HR + BB + SO + SB + CS + HBP + SF + RA + ER + ERA + CG + SHO + SV + IPouts + HA  + HRA + BBA + SOA + E + DP + FP + attendance + BPF + PPF + salary + RBI + GIDP + IBB + TB + SLG + OBP + OPS + WHIP + BABIP + RC + X1B + uBB + wOBA
-formula <- formula(scope)
+start_model <- glm(DivWin ~ 1, data = bbproj_trn, family = binomial)
+n <- length(resid(start_model))
+```
+
+### Forward Search: BIC Model
+
+```{r warning=FALSE}
+bic_model <- step(start_model, direction = "forward", scope = scope, k = log(n), trace = 0)
+summary(bic_model)
+```
+
+Our forward search using BIC yields the following logistic model
+
+\[
+\log \bigg(\frac{P[DivWin = 1]}{1 - P[DivWin = 1]} \bigg) = \beta_0 + \beta_W W + \beta_{X2B} X2B
+\]
+
+where the log odds of a team winning their division is dependent upon wins and doubles.
+
+#### Diagnostics: BIC Model
+
+Next, we will evaluate this model using a confusion matrix and calculating its sensitivity, specificity, and its misclassification rate, starting with a cutoff value of 0.5.
+
+```{r}
+bic_prediction <- ifelse(predict(bic_model, bbproj_tst, type = "response") > 0.5, "Y", "N")
+(bic_misclass = mean(bic_prediction != bbproj_tst$DivWin))
+(bic_conf_matrix = table(prediction = bic_prediction, actual = bbproj_tst$DivWin))
+(bic_sensitivity = bic_conf_matrix[2, 2] / sum(bic_conf_matrix[, 2]))
+(bic_specificity = bic_conf_matrix[1, 1] / sum(bic_conf_matrix[, 1]))
+```
+
+Here, we beat the salary only model along with the prevalence with a misclassification rate of `r round(bic_misclass, 3)`.  Our specificity looks great for our forward BIC model at `r round(bic_specificity, 3)`.  Our `r bic_conf_matrix[1, 2]` false negatives could come down, however, with an adjustment to our cutoff value.
+
+#### Find an Optimal Cutoff
+
+The following function will loop through a vector of potential cutoffs to isolate one that will produce the smallest misclassification rate with a minimal differential between sensitivity and specificity:
+
+```{r}
+opt_logistic_cutoff = function(model, cut_start = 0.01, cut_end = 0.99, plotit = TRUE) {
+  # Loop through potential cutoffs from cut_start to cut_end to determine a cutoff that
+  # produces the lowest misclassification rate with the smallest delta between sensitivity
+  # and specificity
+  cutoffs = seq(cut_start, cut_end, by = 0.01)
+  sens = rep(0, length(cutoffs))
+  spec = rep(0, length(cutoffs))
+  misclass = rep(0, length(cutoffs))
+  delta = rep(0, length(cutoffs))
+  for (i in 1:length(cutoffs)) {
+    pred = ifelse(predict(model, bbproj_tst, type = "response") > cutoffs[i], "Y", "N")
+    conf_mat = table(prediction = pred, actual = bbproj_tst$DivWin)
+    sens[i] = conf_mat[2, 2] / sum(conf_mat[, 2])
+    spec[i] = conf_mat[1, 1] / sum(conf_mat[, 1])
+    misclass[i] = mean(pred != bbproj_tst$DivWin)
+    delta[i] = abs(sens[i] - spec[i])
+  }
+  
+  # Get the indicies of the smallest misclassification rates
+  min_misclass = which(misclass == min(misclass))
+  
+  # Get the smallest delta between sensitivity and specificity at the identified
+  # misclassification indicies
+  min_delta = min_misclass[which.min(delta[min_misclass])]
+  
+  # Plot sensitivity, specificity, and misclassification if requested
+  if (plotit) {
+    plot(sens ~ cutoffs,
+         xlab = "Cutoff",
+         ylab = "Sensitivity/Specificity",
+         main = "Sensitivity and Specificity at Varied Cutoffs",
+         col = "tomato",
+         type = "b",
+         ylim = c(0, 1),
+         pch = 20)
+    lines(spec ~ cutoffs, 
+          col = "darkslategray4", 
+          type = "b",
+          pch = 20)
+    lines(misclass ~ cutoffs, 
+          col = "darkorange", 
+          type = "b",
+          pch = 20)
+    abline(v = cutoffs[min_delta], lty = 2)
+    legend("topright", c("Sensitivity", "Specificity", "Misclassification"),
+           col = c("tomato", "darkslategray4", "darkorange"),
+           lwd = 1,
+           pch = 20)
+  }
+  
+  # Return the misclassification, sensitivity, and specificity at the optimal
+  # cutoff value
+  c(cutoff = cutoffs[min_delta],
+    misclass = misclass[min_delta], 
+    sensitivity = sens[min_delta],
+    specificity = spec[min_delta])
+}
+```
+
+```{r}
+(opt_cutoff = opt_logistic_cutoff(bic_model, cut_start = 0.1, cut_end = 0.8))
+```
+
+Our routine finds an optimal cutoff value for our forward BIC model of `r opt_cutoff[1]`.  Let's proceed to evaluate the diagnostics manually:
+
+```{r}
+bic_prediction_3 <- ifelse(predict(bic_model, bbproj_tst, type = "response") > 0.3, "Y", "N")
+(bic_misclass_3 = mean(bic_prediction_3 != bbproj_tst$DivWin))
+(bic_conf_matrix_3 = table(prediction = bic_prediction_3, actual = bbproj_tst$DivWin))
+(bic_sensitivity_3 = bic_conf_matrix_3[2, 2] / sum(bic_conf_matrix_3[, 2]))
+(bic_specificity_3 = bic_conf_matrix_3[1, 1] / sum(bic_conf_matrix_3[, 1]))
+```
+
+Our misclassification rate went down with our cutoff adjustment to `r round(bic_misclass_3, 3)`.  Additionally, our sensitivity went up significantly (`r round (bic_sensitivity_3, 3)`) and we only had a modest reduction in specificity (`r round(bic_specificity_3, 3)`).  This model looks to be exceptionally adept at classifying division winners, and `salary` is not even a predictor!
+
+***
+
+## And the Winning Model is... ##
+
+***
+
+## Appendix A - Multivariate Linear Regression Models for Inference and Explanation
+
+## Appendix B - Multivariate Linear Regression Models for Prediction
+
+## Appendix C - Logistic Regression Models
+
+```{r warning=FALSE}
+scope <- DivWin ~ W + R + AB + H + X2B + X3B + HR + BB + SO + SB + CS + HBP + SF + RA + ER + ERA + CG + SHO + SV + IPouts + HA  + HRA + BBA + SOA + E + DP + FP + attendance + BPF + PPF + salary + RBI + GIDP + IBB + TB + SLG + OBP + OPS + WHIP + BABIP + RC + X1B + uBB + wOBA
+formula <- formula(DivWin ~ 1)
 start_model <- glm(formula, data = bbproj_trn, family = binomial)
 n <- length(resid(start_model))
 ```
 
-### Backwards Search: BIC Model
+### Backward Search: BIC Model
 
 ```{r warning=FALSE}
-bic_model <- step(start_model, direction = "backward", k = log(n), trace = 0)
-summary(bic_model)
+formula <- formula(scope)
+back_bic_model <- step(glm(formula, data = bbproj_trn, family = binomial), 
+                       direction = "backward", k = log(n), trace = 0)
+summary(back_bic_model)
+back_bic_prediction <- ifelse(predict(back_bic_model, bbproj_tst, type = "response") > 0.5, "Y", "N")
+(back_bic_misclass = mean(back_bic_prediction != bbproj_tst$DivWin))
+(back_bic_conf_matrix = table(prediction = back_bic_prediction, actual = bbproj_tst$DivWin))
+(back_bic_sensitivity = back_bic_conf_matrix[2, 2] / sum(back_bic_conf_matrix[, 2]))
+(back_bic_specificity = back_bic_conf_matrix[1, 1] / sum(back_bic_conf_matrix[, 1]))
 ```
-
-Our backwards search using BIC yields the following logistic model
-
-\[
-\log \bigg(\frac{P[DivWin = 1]}{1 - P[DivWin = 1]} \bigg) = \beta_0 + \beta_W W + \beta_{AB} AB + \beta_H H + \beta_{HR} HR + \beta_{BB} BB + \beta_{HBP} HBP + \beta_{IBB} IBB + \beta_{SLG} SLG + \beta_{OBP} OBP + \beta_{wOBA} wOBA
-\]
-
-where the log odds of a team winning their division is dependent upon wins, at bats, hits, home runs, walks, hits by pitch, intentional walks, slugging percentage, on-base percentage, and weighted on-base average.
-
-#### Diagnostics: BIC Model
-
-Next, we will evaluate this model using a confusion matrix and calculating it sensitivity, specificity, and its misclassification rate.
 
 ```{r}
-bic_model <- glm(DivWin ~ W + AB + H + HR + BB + HBP + IBB + SLG + OBP + wOBA, family = binomial, data = bbproj_trn)
-
-bic_prediction <- ifelse(predict(bic_model, bbproj_tst, type = "response") > 0.5, "Y", "N")
-
-(bic_misclass = mean(bic_prediction != bbproj_tst$DivWin))
-
-(bic_conf_matrix = table(prediction = bic_prediction, actual = bbproj_tst$DivWin))
-
-(bic_sensitivity = bic_conf_matrix[2, 2] / sum(bic_conf_matrix[, 2]))
-
-(bic_specificity = bic_conf_matrix[1, 1] / sum(bic_conf_matrix[, 1]))
+opt_logistic_cutoff(back_bic_model, cut_start = 0.1, cut_end = 0.8)
 ```
 
-Here, we beat the salary only model, and our prevalence, with a misclassification rate of `r round(bic_misclass, 3)`.  Our specificity looks great for our backward BIC model at `r round(bic_specificity, 3)`.  Our `r bic_conf_matrix[1, 2]` false negatives could come down, however, with an adjustment to our cutoff value.
-
-#### Reset Cutoff to 0.25
-
-Let's start with a cutoff of 0.25:
+### Forward Search: BIC Model
 
 ```{r}
-bic_prediction_25 <- ifelse(predict(bic_model, bbproj_tst, type = "response") > 0.25, "Y", "N")
-
-(bic_misclass_25 = mean(bic_prediction_25 != bbproj_tst$DivWin))
-
-(bic_conf_matrix_25 = table(prediction = bic_prediction_25, actual = bbproj_tst$DivWin))
-
-(bic_sensitivity_25 = bic_conf_matrix_25[2, 2] / sum(bic_conf_matrix_25[, 2]))
-
-(bic_specificity_25 = bic_conf_matrix_25[1, 1] / sum(bic_conf_matrix_25[, 1]))
+forw_bic_model <- step(start_model, direction = "forward", scope = scope, k = log(n), trace = 0)
+summary(forw_bic_model)
+forw_bic_prediction <- ifelse(predict(forw_bic_model, bbproj_tst, type = "response") > 0.5, "Y", "N")
+(forw_bic_misclass = mean(forw_bic_prediction != bbproj_tst$DivWin))
+(forw_bic_conf_matrix = table(prediction = forw_bic_prediction, actual = bbproj_tst$DivWin))
+(forw_bic_sensitivity = forw_bic_conf_matrix[2, 2] / sum(forw_bic_conf_matrix[, 2]))
+(forw_bic_specificity = forw_bic_conf_matrix[1, 1] / sum(forw_bic_conf_matrix[, 1]))
 ```
 
-Interestingly, our misclassification rate went down with our cutoff adjustment to `r round(bic_misclass_25, 3)`.  Additionally, our sensitivity went up significantly (`r round (bic_sensitivity_25, 3)`) and we only had a modest reduction in specificity (`r round(bic_specificity_25, 3)`).  This model looks to be exceptionally adept at classifying division winners, and `salary` is not even a predictor!
+```{r}
+opt_logistic_cutoff(forw_bic_model, cut_start = 0.1, cut_end = 0.8)
+```
 
-***
+### Stepwise Search: BIC Model
 
-## And the The Winning Model Is! ##
+```{r}
+step_bic_model <- step(start_model, direction = "both", scope = scope, k = log(n), trace = 0)
+summary(step_bic_model)
+step_bic_prediction <- ifelse(predict(step_bic_model, bbproj_tst, type = "response") > 0.5, "Y", "N")
+(step_bic_misclass = mean(step_bic_prediction != bbproj_tst$DivWin))
+(step_bic_conf_matrix = table(prediction = step_bic_prediction, actual = bbproj_tst$DivWin))
+(step_bic_sensitivity = step_bic_conf_matrix[2, 2] / sum(step_bic_conf_matrix[, 2]))
+(step_bic_specificity = step_bic_conf_matrix[1, 1] / sum(step_bic_conf_matrix[, 1]))
+```
+
+```{r}
+opt_logistic_cutoff(step_bic_model, cut_start = 0.1, cut_end = 0.8)
+```
+
+### Backward Search: AIC Model
+
+```{r warning=FALSE}
+formula <- formula(scope)
+back_aic_model <- step(glm(formula, data = bbproj_trn, family = binomial), 
+                       direction = "backward", trace = 0)
+summary(back_aic_model)
+back_aic_prediction <- ifelse(predict(back_aic_model, bbproj_tst, type = "response") > 0.5, "Y", "N")
+(back_aic_misclass = mean(back_aic_prediction != bbproj_tst$DivWin))
+(back_aic_conf_matrix = table(prediction = back_aic_prediction, actual = bbproj_tst$DivWin))
+(back_aic_sensitivity = back_aic_conf_matrix[2, 2] / sum(back_aic_conf_matrix[, 2]))
+(back_aic_specificity = back_aic_conf_matrix[1, 1] / sum(back_aic_conf_matrix[, 1]))
+```
+
+```{r}
+opt_logistic_cutoff(back_aic_model, cut_start = 0.1, cut_end = 0.8)
+```
+
+```{r}
+back_aic_prediction <- ifelse(predict(back_aic_model, bbproj_tst, type = "response") > 0.3, "Y", "N")
+(back_aic_misclass = mean(back_aic_prediction != bbproj_tst$DivWin))
+(back_aic_conf_matrix = table(prediction = back_aic_prediction, actual = bbproj_tst$DivWin))
+(back_aic_sensitivity = back_aic_conf_matrix[2, 2] / sum(back_aic_conf_matrix[, 2]))
+(back_aic_specificity = back_aic_conf_matrix[1, 1] / sum(back_aic_conf_matrix[, 1]))
+```
+
+### Forward Search: AIC Model
+
+```{r}
+forw_aic_model <- step(start_model, direction = "forward", scope = scope, trace = 0)
+summary(forw_aic_model)
+forw_aic_prediction <- ifelse(predict(forw_aic_model, bbproj_tst, type = "response") > 0.5, "Y", "N")
+(forw_aic_misclass = mean(forw_aic_prediction != bbproj_tst$DivWin))
+(forw_aic_conf_matrix = table(prediction = forw_aic_prediction, actual = bbproj_tst$DivWin))
+(forw_aic_sensitivity = forw_aic_conf_matrix[2, 2] / sum(forw_aic_conf_matrix[, 2]))
+(forw_aic_specificity = forw_aic_conf_matrix[1, 1] / sum(forw_aic_conf_matrix[, 1]))
+```
+
+```{r}
+opt_logistic_cutoff(forw_aic_model, cut_start = 0.1, cut_end = 0.8)
+```
+
+### Stepwise Search: AIC Model
+
+```{r}
+step_aic_model <- step(start_model, direction = "both", scope = scope, trace = 0)
+summary(step_aic_model)
+step_aic_prediction <- ifelse(predict(step_aic_model, bbproj_tst, type = "response") > 0.5, "Y", "N")
+(step_aic_misclass = mean(step_aic_prediction != bbproj_tst$DivWin))
+(step_aic_conf_matrix = table(prediction = step_aic_prediction, actual = bbproj_tst$DivWin))
+(step_aic_sensitivity = step_aic_conf_matrix[2, 2] / sum(step_aic_conf_matrix[, 2]))
+(step_aic_specificity = step_aic_conf_matrix[1, 1] / sum(step_aic_conf_matrix[, 1]))
+```
+
+```{r}
+opt_logistic_cutoff(step_aic_model, cut_start = 0.1, cut_end = 0.8)
+```
