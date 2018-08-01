@@ -104,9 +104,23 @@ bbproj_tst$park <- as.factor(bbproj_tst$park)
 ```
 # Introduction #
 
+Convential wisdom is that money buys happiness (winning) in Major League Baseball.  However, the advent of "Moneyball" in the early 2000s by the Oakland Athletics, Cleveland Indians and other teams has lead to a more analytical approach to detemining the make-up of Major League rosters.  
+
+As it turns out, money is not the magic elixer when it comes to assembling a winning Major League Baseball (MLB) team.  The following plot shows that salary does not highly correlate with a winning record.  This is substantiated by the companion single linear regression model and summary statistics that show that salary, while significant, only has a marginal impact on wins by an MLB team. The adjusted *$R^2$* from thesimple linear regression -- using training data from 2000 through 2013 is low.  Furthermore, the *average percent error* that compares actual wins versus predicted wins from the the test data (2014 through 2016) is high.
 
 
-## Salary as the Single Predictor of Season Wins ##
+So what are the factors that move the needle?
+
+We explore two related threads in attempting to identify the factors that have a strong impact on a winning baseball team.
+
+The first thread uses multilear regression to identify the factors that influence a teams's winning record over the course of a season.  The second thread uses logistic regression to identify the factors that influence a team's ability to win their division.
+
+A few words are in order about where we obtained the data from to perform this analysis.
+
+The source of data is the Sean Latham baseball archive (http://www.seanlahman.com/baseball-archive/), recognized by the *Society for American Baseball Research* (SABR) as the leading archive detailed player and team data from 1874 through the end of the 2017 Major League Baseball season.  We use team statistics from the years 2000 through 2013 as training dataset and use data from 2014 through 2016 as the test dataset.
+(We joined multiple datasets together from this archive and one the datasets only has data throught the end of the 2016 season.  Because of this, we were not able to include the 2017 season as part of this study.)
+
+
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 options(scipen=10)
@@ -149,10 +163,6 @@ rmse_salary_only_model <- result$rmse
 ### Plot predicted vs actual wins for the smaller step search aic model
 plot_predicted_wins_versus_actual_wins("Salary Only Model", predicted_wins_salary_only_model, bbproj_tst$W, avg_pct_error_salary_only_model, rmse_salary_only_model)
 ```
-
-Salary is a marginally significant in terms of predicting wins and losses.  The adjusted *$R^2$* from the above simple linear regression -- using training data from 2000 through 2013 is low.  Furthermore, the *average percent error* that compares actual wins versus predicted wins from the the test data (2014 through 2016) is high.
-
-We can do better.
 
 
 # The Search for Better Multivariate Linear Regression Models For Predicting Season Wins #
