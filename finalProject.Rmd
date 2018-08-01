@@ -2,15 +2,11 @@
 title: "Final Project"
 author: "Mark Berman, Joel Kopp and Richard Wheeler"
 date: "7/23/2018"
-<<<<<<< HEAD
 output: 
   html_document:
      toc: yes
 editor_options: 
   chunk_output_type: console
-=======
-output: html_document
->>>>>>> parent of 6c647b4... added Leave One Out Cross Validation metrics for all of the models
 ---
 
 ```{r setup, include=FALSE}
@@ -34,7 +30,7 @@ plot_predicted_wins_versus_actual_wins <- function(model_name, predicted_wins, a
   xrange <- c(0,max(actual_wins+10))
   yrange <- c(0,max(predicted_wins+10))
   title <- paste(model_name, " : 2014 - 2016 Baseball Seasons")
-  sub <- paste("Average Percent Error: ", round(avg_pct_error,2), " %", "   RMSE: ", round(rmse,2))
+  sub <- paste("Average Percent Error: ", round(avg_pct_error,2), " %", "   Test RMSE: ", round(rmse,2))
   plot(predicted_wins ~ actual_wins, pch = 20, col = "grey", cex = 1.5, xlab = "Actual Wins", ylab = "Predicted Wins", main= title, sub=sub, xlim=xrange, ylim=yrange)
   abline(a = 0, b = 1, col = "darkorange")
 }
@@ -46,6 +42,15 @@ plot_fitted_versus_residuals <- function(fitted_values, residuals, model_name){
   plot(fitted(bic_model), resid(bic_model), col = "grey", pch = 20,
   xlab = "Fitted", ylab = "Residuals", main = model_name)
   abline(h = 0, col = "darkorange", lwd = 2)
+}
+
+
+```
+
+```{r}
+### calculate cross validated RMSE for models using training data
+calc_loocv_rmse = function(model) {
+sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
 }
 ```
 
@@ -125,6 +130,10 @@ salary_only_model <- lm(W ~ salary, data = bbproj_trn)
 summary(salary_only_model)
 ```
 
+```{r}
+print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(salary_only_model),2)))
+```
+
 
 ```{r message=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 ### average percent error for the salary only model ###
@@ -159,11 +168,16 @@ start_model <- lm(formula, data= bbproj_trn)
 n <- length(resid(start_model))
 step_search_start_model <- lm(W ~ 1, data= bbproj_trn)
 ```
+
+#### Backwards Search: BIC Model ####
+
 ```{r}
 ### Backwards Search: BIC Model
 bic_model <- step(start_model,  direction = "backward", k = log(n),trace = 0)
 summary(bic_model)
 ```
+
+#### Backwards Search: AIC Model ####
 
 ```{r}
 ### Backwards Search: AIC Model
@@ -172,14 +186,19 @@ summary(aic_model)
 
 ```
 
+#### Step Search: BIC Model ####
+
 ```{r}
 ### Step Search: BIC Model
 step_bic_model <- step(step_search_start_model, scope = scope, direction = "both",k = log(n),trace = 0)
 summary(step_bic_model)
 ```
 
+
+#### Step Search: AIC Model ####
+
 ```{r}
-###W Step Search: AIC Model ### 
+### Step Search: AIC Model ### 
 step_aic_model <- step(step_search_start_model, scope = scope, direction = "both", trace = 0)
 summary(step_aic_model)
 ```
@@ -187,6 +206,7 @@ summary(step_aic_model)
 ### Evaluation and Refinement of the Candidate Models ###
 
 
+#### Evaluation of the Backwards Search: BIC Model ####
 ```{r}
 ### Breusch-Pagan Test on Backwards Search - BIC Model
 library(lmtest)
@@ -207,6 +227,11 @@ shapiro.test(resid(bic_model))
 qqnorm(resid(bic_model), main = "Normal Q-Q Plot, Backwards Search - BIC Model", col = "darkgrey")
 qqline(resid(bic_model), col = "dodgerblue", lwd = 2)
 ```
+```{r}
+print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(bic_model),2)))
+```
+
+
 
 ```{r}
 ### Do the number of standard residuals greater than 2 exceed 5% of the total observations -- Backwards Search: BIC Model
@@ -234,6 +259,8 @@ vif_bic_model <- vif(bic_model)
 vif_bic_model[which(vif_bic_model > 5)]
 ```
 
+#### Refining the Backwards Search: BIC Model Due to High Variance Inflation Factors ####
+
 ```{r}
 library(caret)
 bic_model_high_vif_cols <- c("R", "AB", "H", "BB", "SO", "RA", "E", "FP", "BABIP", "RC")
@@ -242,11 +269,16 @@ vars_to_drop <- bic_model_high_vif_cols[indices_to_drop]
 vars_to_drop
 ```
 
+##### A Better And Smaller Backwards Search: BIC Model #####
+
 ```{r}
 
 smaller_bic_model <-  lm(W ~ AB  + BB + SO + SF + RA + CG + SV + IPouts +  BBA + BABIP, data = bbproj_trn)
 summary(smaller_bic_model)
 ```
+
+##### Diagnostics for the Better and Smaller Backwards Search: BIC Model #####
+
 
 ```{r}
 library(lmtest)
@@ -255,6 +287,7 @@ vif(smaller_bic_model)
 print(paste("Number of coefficients with VIF > 5 : ", sum(vif(smaller_bic_model) > 5)))
 bptest(smaller_bic_model)
 shapiro.test(resid(smaller_bic_model))
+print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(smaller_bic_model),2)))
 std_resid_bic_model <- rstandard(bic_model)[abs(rstandard(smaller_bic_model)) > 2]
 is_std_resid_gt_five_percent_bic_model <- length(std_resid_bic_model) / n > 0.05
 ifelse(is_std_resid_gt_five_percent_bic_model,"Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs")
@@ -263,6 +296,7 @@ print(paste("Number of Influential Observations: ", sum(cd_smaller_bic_model)))
 ```
 
 
+#### Evaluation of the Backwards Search: AIC Model ####
 
 
 ```{r}
@@ -284,6 +318,11 @@ shapiro.test(resid(aic_model))
 qqnorm(resid(aic_model), main = "Normal Q-Q Plot, Backwards Search - AIC Model", col = "darkgrey")
 qqline(resid(aic_model), col = "dodgerblue", lwd = 2)
 ```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(aic_model),2)))
+```
+
 
 ```{r}
 ### Do the number of standard residuals greater than 2 exceed 5% of the total observations -- Backwards Search: AIC Model
@@ -309,7 +348,7 @@ vif_aic_model <- vif(aic_model)
 vif_aic_model[which(vif_aic_model > 5)]
 ```
 
-
+#### Refining the Backwards Search: AIC Model Due to High Variance Inflation Factors ####
 
 
 ```{r}
@@ -320,11 +359,15 @@ vars_to_drop <- aic_model_high_vif_cols[indices_to_drop]
 vars_to_drop
 ```
 
+##### A Better And Smaller Backwards Search: AIC Model #####
+
 ```{r}
 #smaller_aic_model <-  lm(formula = W ~  AB + HR + BB + SO + CS + ER + CG + SHO + SV + IPouts + BBA + FP + GIDP + IBB +  BABIP, data = bbproj)
 smaller_aic_model <-  lm(formula = W ~  HR + BB + SO + ER + CG + SHO + SV + IPouts + BBA + FP + GIDP + BABIP, data = bbproj_trn)
 summary(smaller_aic_model)
 ```
+
+##### Diagnostics for the Better and Smaller Backwards Search: AIC Model #####
 
 ```{r}
 library(lmtest)
@@ -333,12 +376,16 @@ vif(smaller_aic_model)
 print(paste("Number of coefficients with VIF > 5 : ", sum(vif(smaller_aic_model) > 5)))
 bptest(smaller_aic_model)
 shapiro.test(resid(smaller_aic_model))
+print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(smaller_aic_model),2)))
 std_resid_aic_model <- rstandard(smaller_aic_model)[abs(rstandard(smaller_aic_model)) > 2]
 is_std_resid_gt_five_percent_aic_model <- length(std_resid_aic_model) / n > 0.05
 ifelse(is_std_resid_gt_five_percent_aic_model,"Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs")
 cd_smaller_aic_model <- cooks.distance(smaller_aic_model) > 4 / n
 print(paste("Number of Influential Observations: ", sum(cd_smaller_bic_model)))
 ```
+
+
+#### Evaluation of the Step Search: BIC Model ####
 
 ```{r}
 ### Breusch-Pagan Test on Step BIC Model
@@ -358,6 +405,10 @@ shapiro.test(resid(step_bic_model))
 ```{r}
 qqnorm(resid(step_bic_model), main = "Normal Q-Q Plot, Step Search - BIC Model", col = "darkgrey")
 qqline(resid(step_bic_model), col = "dodgerblue", lwd = 2)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(step_bic_model),2)))
 ```
 
 
@@ -385,10 +436,18 @@ vif_step_bic_model <- vif(step_bic_model)
 vif_step_bic_model[which(vif_step_bic_model > 5)]
 ```
 
+#### Refining the Step Search: BIC Model Due to High Variance Inflation Factors ####
+
+
+
+##### A Better And Smaller Step Search: BIC Model #####
+
 ```{r}
 smaller_step_bic_model <- lm(formula = W ~ SV + R + RA + SHO + CG + X3B + IPouts + AB + salary, data = bbproj_trn)
 summary(smaller_step_bic_model)
 ```
+
+##### Diagnostics for the Better and Smaller Step Search: BIC Model #####
 
 ```{r}
 library(lmtest)
@@ -397,12 +456,15 @@ vif(smaller_step_bic_model)
 print(paste("Number of coefficients with VIF > 5 : ", sum(vif(smaller_step_bic_model) > 5)))
 bptest(smaller_step_bic_model)
 shapiro.test(resid(smaller_step_bic_model))
+print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(smaller_step_bic_model),2)))
 std_resid_step_bic_model <- rstandard(smaller_step_bic_model)[abs(rstandard(smaller_step_bic_model)) > 2]
 is_std_resid_gt_five_percent_step_bic_model <- length(std_resid_step_bic_model) / n > 0.05
 ifelse(is_std_resid_gt_five_percent_step_bic_model,"Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs")
 cd_smaller_step_bic_model <- cooks.distance(smaller_step_bic_model) > 4 / n
 print(paste("Number of Influential Observations: ", sum(cd_smaller_step_bic_model)))
 ```
+
+#### Evaluation of the Step Search: AIC Model ####
 
 ```{r}
 ### Breusch-Pagan Test on Step AIC Model
@@ -422,6 +484,11 @@ shapiro.test(resid(step_aic_model))
 qqnorm(resid(step_aic_model), main = "Normal Q-Q Plot, Step Search - AIC Model", col = "darkgrey")
 qqline(resid(step_aic_model), col = "dodgerblue", lwd = 2)
 ```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(step_aic_model),2)))
+```
+
 
 ```{r}
 ### Do the number of standard residuals greater than 2 exceed 5% of the total observations -- Step Search: AIC Model
@@ -447,11 +514,18 @@ vif_step_aic_model <- vif(step_aic_model)
 vif_step_aic_model[which(vif_step_aic_model > 5)]
 ```
 
+#### Refining the Step Search: AIC Model Due to High Variance Inflation Factors ####
+
+
+##### A Better And Smaller Step Search: AIC Model #####
 
 ```{r}
 smaller_step_aic_model <- lm(formula = W ~ SV + R + SHO + CG + X3B + IPouts + BBA + HRA + SOA, data = bbproj_trn)
 summary(smaller_step_aic_model)
 ```
+
+
+##### Diagnostics for the Better and Smaller Step Search: AIC Model #####
 
 ```{r}
 library(lmtest)
@@ -460,6 +534,7 @@ vif(smaller_step_aic_model)
 print(paste("Number of coefficients with VIF > 5 : ",sum(vif(smaller_step_aic_model) > 5)))
 bptest(smaller_step_aic_model)
 shapiro.test(resid(smaller_step_aic_model))
+print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(smaller_step_aic_model),2)))
 std_resid_step_aic_model <- rstandard(smaller_step_aic_model)[abs(rstandard(smaller_step_aic_model)) > 2]
 is_std_resid_gt_five_percent_step_aic_model <- length(std_resid_step_aic_model) / n > 0.05
 ifelse(is_std_resid_gt_five_percent_step_aic_model,"Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs")
