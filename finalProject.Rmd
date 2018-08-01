@@ -13,7 +13,7 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r message=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
 ### function that calculates average percent error using actual wins and predicted wins from test data ###
 calc_average_pct_error <- function(model){
   test_predicted_wins <- predict(model, newdata = bbproj_tst)
@@ -24,7 +24,7 @@ calc_average_pct_error <- function(model){
 }
 ```
 
-```{r message=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
 ### function that plots actual wins versus predicted wins from test data
 plot_predicted_wins_versus_actual_wins <- function(model_name, predicted_wins, actual_wins, avg_pct_error, rmse){
   xrange <- c(0,max(actual_wins+10))
@@ -47,7 +47,7 @@ plot_fitted_versus_residuals <- function(fitted_values, residuals, model_name){
 
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 ### calculate cross validated RMSE for models using training data
 calc_loocv_rmse = function(model) {
 sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
@@ -55,7 +55,7 @@ sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
 ```
 
 
-```{r, message=FALSE, warning=FALSE, include=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 ### load training data and clean it up ###
 library(readr)
 bbproj_trn <- read_csv("bbproj_trn.csv",na = c("", "NA"))
@@ -102,13 +102,13 @@ bbproj_tst$WSWin <- as.factor(bbproj_tst$WSWin)
 bbproj_tst$franchID <- as.factor(bbproj_tst$franchID)
 bbproj_tst$park <- as.factor(bbproj_tst$park)
 ```
-## Introduction ##
+# Introduction #
 
 
 
-## Salary as the Single Predictor of Wins
+## Salary as the Single Predictor of Season Wins ##
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 options(scipen=10)
 xrange <- c(min(bbproj_trn$salary-1000000),max(bbproj_trn$salary+1000000))
 yrange <- c(0,max(bbproj_trn$W+10))
@@ -130,7 +130,7 @@ salary_only_model <- lm(W ~ salary, data = bbproj_trn)
 summary(salary_only_model)
 ```
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(salary_only_model),2)))
 ```
 
@@ -155,10 +155,11 @@ Salary is a marginally significant in terms of predicting wins and losses.  The 
 We can do better.
 
 
-## The search for Better Multivariate Linear Regression Models ##
+# The Search for Better Multivariate Linear Regression Models For Predicting Season Wins #
 
+## Method ##
 
-### Candidate Multivariate Linear Regression Models ###
+### Better Candidate Multivariate Linear Regression Models ###
 
 ```{r}
 library(faraway)
@@ -202,6 +203,16 @@ summary(step_bic_model)
 step_aic_model <- step(step_search_start_model, scope = scope, direction = "both", trace = 0)
 summary(step_aic_model)
 ```
+
+
+#### Forward Search: BIC Model ####
+
+** Richard: Include model and summary(model) here **
+
+#### Forward Search: AIC Model ####
+
+** Richard: Include model and summary(model) here **
+
 
 ### Evaluation and Refinement of the Candidate Models ###
 
@@ -542,6 +553,38 @@ cd_smaller_step_aic_model <- cooks.distance(smaller_step_aic_model) > 4 / n
 print(paste("Number of Influential Observations: ", sum(cd_smaller_step_aic_model)))
 ```
 
+#### Evaluation of the Forward Search: BIC Model ####
+
+** Richard:  use same diagrams and approach I did. (Copy and paste my code and modify) **
+
+#### Refining the Forward Search: BIC Model Due to High Variance Inflation Factors ####
+
+** Richard: use same approach I did. (Copy and paste my code and modify)**
+
+##### A Better And Smaller Forward Search: BIC Model #####
+
+** Richard: use same approach I did. (Copy and paste my code and modify).**
+
+##### Diagnostics for the Better and Smaller Forward Search: BIC Model #####
+
+** Richard: use same approach I did. (Copy and paste my code and modify.) **
+
+#### Evaluation of the Forward Search: AIC Model ####
+
+** Richard:  use same diagrams and approach I did. (Copy and paste my code and modify) **
+
+#### Refining the Forward Search: AIC Model Due to High Variance Inflation Factors ####
+
+** Richard: use same approach I did. (Copy and paste my code and modify)**
+
+##### A Better And Smaller Forward Search: AIC Model #####
+
+** Richard: use same approach I did. (Copy and paste my code and modify).**
+
+##### Diagnostics for the Better and Smaller Forward Search: AIC Model #####
+
+** Richard: use same approach I did. (Copy and paste my code and modify.) **
+
 
 ### Validate Model Effectiveness Using Test Data  ###
 
@@ -611,11 +654,20 @@ rmse_smaller_step_aic_model <- result$rmse
 plot_predicted_wins_versus_actual_wins("Smaller Step Search AIC Model", predicted_wins_smaller_step_aic_model, bbproj_tst$W, avg_pct_error_smaller_step_aic_model,rmse_smaller_step_aic_model)
 ```
 
-***
+** Richard: Copy and paste the 2 above code blocks for Plotting predicted vs actual wins for your smaller (best) Forward BIC Model.  Modify as required. **
 
-## Logistic Modeling and Prediction of Division Winners
 
-### Salary as a Predictor for Division Winners
+** Richard: Copy and paste the 2 above code blocks for Plotting predicted vs actual wins for your smaller (best) Forward AIC Model.  Modify as required. **
+
+## Results ## 
+
+### And the Winning Linear Regression Model is... ###
+
+## Discussion ##
+
+# Logistic Modeling and Prediction of Division Winners #
+
+## Salary as a Predictor for Division Winners ##
 
 Let's turn our attention to logistic regression and our ability to classify and predict division winners using our team predictor set.  First, let's see how well salary alone can predict pennants.
 
@@ -646,7 +698,9 @@ salary_prediction <- ifelse(predict(salary_only_model, bbproj_tst, type = "respo
 
 First, let's examine prevalence of division winners.  We see that `r prevalence[2] * 100`% of the teams were division winners, which makes sense, since there are 6 divisions and 30 MLB teams, therefore you will only have 6 division winners per year.  Our salary model has a misclassification rate of `r salary_misclass`, which is worse than our prevalence.  We would have a better misclassification rate if we simply stated that there are no division winners!  We can certainly do better than this.
 
-## Candidate Logistic Regression Models
+## Method ##
+
+### Candidate Logistic Regression Models ###
 
 We will begin our search for a better classifier by setting up an initial logisitc regression model contain all of the predictors we would like to evaluate.  Then, we will proceed to eliminate predictors using backwards, forwards, and stepwise AIC and BIC searches.  See Appendix C for a complete evaluation of all of the models.  The following will detail the methodology using our best candiate model.
 
@@ -656,7 +710,7 @@ start_model <- glm(DivWin ~ 1, data = bbproj_trn, family = binomial)
 n <- length(resid(start_model))
 ```
 
-### Forward Search: BIC Model
+#### Forward Search: BIC Model ####
 
 ```{r warning=FALSE}
 bic_model <- step(start_model, direction = "forward", scope = scope, k = log(n), trace = 0)
@@ -671,7 +725,7 @@ Our forward search using BIC yields the following logistic model
 
 where the log odds of a team winning their division is dependent upon wins and doubles.
 
-#### Diagnostics: BIC Model
+##### Diagnostics: BIC Model ####
 
 Next, we will evaluate this model using a confusion matrix and calculating its sensitivity, specificity, and its misclassification rate, starting with a cutoff value of 0.5.
 
@@ -685,7 +739,7 @@ bic_prediction <- ifelse(predict(bic_model, bbproj_tst, type = "response") > 0.5
 
 Here, we beat the salary only model along with the prevalence with a misclassification rate of `r round(bic_misclass, 3)`.  Our specificity looks great for our forward BIC model at `r round(bic_specificity, 3)`.  Our `r bic_conf_matrix[1, 2]` false negatives could come down, however, with an adjustment to our cutoff value.
 
-#### Find an Optimal Cutoff
+#### Find an Optimal Cutoff ####
 
 The following function will loop through a vector of potential cutoffs to isolate one that will produce the smallest misclassification rate with a minimal differential between sensitivity and specificity:
 
@@ -767,11 +821,15 @@ Our misclassification rate went down with our cutoff adjustment to `r round(bic_
 
 ***
 
-## And the Winning Model is... ##
+## Results ##
 
-***
+### And the Winning Logistic Regression Model is... ###
 
-## Appendix A - Multivariate Linear Regression Models for Inference and Explanation
+## Discussion ##
+
+# Apendices #
+
+## Appendix A - Multivariate Linear Regression Models for Inference and Explanation #
 
 ## Appendix B - Multivariate Linear Regression Models for Prediction
 
