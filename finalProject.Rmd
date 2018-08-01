@@ -1,6 +1,6 @@
 ---
 title: "Final Project"
-author: "Mark Berman, Joel Kopp and Richard Wheeler"
+author: "Mark Berman, Joel Kopp, and Richard Wheeler"
 date: "7/23/2018"
 output: 
   html_document:
@@ -54,7 +54,6 @@ sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
 }
 ```
 
-
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 ### load training data and clean it up ###
 library(readr)
@@ -102,25 +101,90 @@ bbproj_tst$WSWin <- as.factor(bbproj_tst$WSWin)
 bbproj_tst$franchID <- as.factor(bbproj_tst$franchID)
 bbproj_tst$park <- as.factor(bbproj_tst$park)
 ```
+
+***
+
 # Introduction #
 
-Convential wisdom is that money buys happiness (winning) in Major League Baseball.  However, the advent of "Moneyball" in the early 2000s by the Oakland Athletics, Cleveland Indians and other teams has lead to a more analytical approach to detemining the make-up of Major League rosters.  
+Conventional wisdom is that money buys happiness (winning) in Major League Baseball.  However, the advent of "Moneyball" in the early 2000s by the Oakland Athletics, Cleveland Indians, and other teams, has lead to a more analytical approach to determining the make-up of Major League rosters.  
 
-As it turns out, money is not the magic elixer when it comes to assembling a winning Major League Baseball (MLB) team.  The following plot shows that salary does not highly correlate with a winning record.  This is substantiated by the companion single linear regression model and summary statistics that show that salary, while significant, only has a marginal impact on wins by an MLB team. The adjusted *$R^2$* from thesimple linear regression -- using training data from 2000 through 2013 is low.  Furthermore, the *average percent error* that compares actual wins versus predicted wins from the the test data (2014 through 2016) is high.
-
+As it turns out, money is not the magic elixir when it comes to assembling a winning Major League Baseball (MLB) team.  The following plot shows that salary does not highly correlate with a winning record.  This is substantiated by the companion single linear regression model and summary statistics that show that salary, while significant, only has a marginal impact on wins by an MLB team. The adjusted *$R^2$* from the simple linear regression -- using training data from 2000 through 2013 -- is low.  Furthermore, the *average percent error* that compares actual wins versus predicted wins from the the test data (2014 through 2016) is high.
 
 So what are the factors that move the needle?
 
 We explore two related threads in attempting to identify the factors that have a strong impact on a winning baseball team.
 
-The first thread uses multilear regression to identify the factors that influence a teams's winning record over the course of a season.  The second thread uses logistic regression to identify the factors that influence a team's ability to win their division.
+The first thread uses multiple linear regression to identify the factors that influence a team's winning record over the course of a season.  The second thread uses logistic regression to identify the factors that influence a team's ability to win their division.
+
+## Data ##
 
 A few words are in order about where we obtained the data from to perform this analysis.
 
-The source of data is the Sean Latham baseball archive (http://www.seanlahman.com/baseball-archive/), recognized by the *Society for American Baseball Research* (SABR) as the leading archive detailed player and team data from 1874 through the end of the 2017 Major League Baseball season.  We use team statistics from the years 2000 through 2013 as training dataset and use data from 2014 through 2016 as the test dataset.
-(We joined multiple datasets together from this archive and one the datasets only has data throught the end of the 2016 season.  Because of this, we were not able to include the 2017 season as part of this study.)
+The source of data is the Sean Lahman baseball archive (http://www.seanlahman.com/baseball-archive/), recognized by the *Society for American Baseball Research* (SABR) as the leading detailed player and team data archive from 1874 through the end of the 2017 Major League Baseball season.  We use team statistics from the years 2000 through 2013 as the training dataset and use data from 2014 through 2016 as the test dataset.  (As a note, we were unable to include the 2017 season in our analysis due to unavailability of salary data.)
 
+### Variables ###
 
+The team-based variables we examine fall into one of three categories: offensive, defensive, or administrative.
+
+#### Administrative ####
+
+- `yearID` - Year
+- `franchID` - Franchise, or team name
+- `W` - **Wins (multiple linear regression response variable)**
+- `DivWin` - **Division winner (Y or N factor- Logistic linear regression response variable)**
+- `WCWin` - Wild Card winner (Y or N factor)
+- `LgWin` - League champion (Y or N factor)
+- `WSWin` - World Series winner (Y or N factor)
+- `salary` - Team Salary (U.S dollars not adjusted for inflation)
+
+#### Offensive ####
+
+- `R` - Runs scored
+- `AB` - At bats
+- `H` - Total hits (including doubles, triples, and home runs)
+- `X1B` - Singles
+- `X2B` - Doubles
+- `X3B` - Triples
+- `HR` - Home runs
+- `BB` - Base on balls (walks)
+- `SO` - Strikeouts
+- `SB` - Stolen bases
+- `CS` - Caught stealing
+- `HBP` - Hit by pitch
+- `SF` - Sacrifice flies
+- `park` - Name of team's home ballpark (factor)
+- `attendance` - Home attendance total
+- `BPF` - Three-year park factor for batters
+- `GIDP` - Grounded into double plays
+- `RBI` - Runs Batted In
+- `IBB` - Intentional walks
+- `TB` - Total bases
+- `SLG` - Slugging percentage
+- `OBP` - On-base percentage
+- `OPS` - On-base plus slugging percentage
+- `BABIP` - Batting average for balls in play
+- `RC` - Runs created
+- `uBB` - Unintentional walks
+- `wOBA` - Weighted on-base average
+
+#### Defensive ####
+
+- `RA` - Total runs allowed
+- `ER` - Earned runs allowed
+- `ERA` - Earned run average
+- `CG` - Complete games
+- `SHO` - Shutouts
+- `SV` - Saves
+- `IPOuts` - Outs pitched
+- `HA` - Hits allowed
+- `HRA` - Home runs allowed
+- `BBA` - Walks allowed
+- `SOA` - Strikeouts by pitchers
+- `E` - Errors
+- `DP` - Double plays
+- `FP` - Fielding percentage
+- `PPF` - Three-year park factor for pitchers
+- `WHIP` - Walks and hits per innings pitched
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 options(scipen=10)
@@ -138,7 +202,6 @@ legend("bottomright",
         pch = c(16,15))
 ```
 
-
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 salary_only_model <- lm(W ~ salary, data = bbproj_trn)
 summary(salary_only_model)
@@ -148,7 +211,6 @@ summary(salary_only_model)
 print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(salary_only_model),2)))
 ```
 
-
 ```{r message=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 ### average percent error for the salary only model ###
 result <- calc_average_pct_error(salary_only_model)
@@ -157,19 +219,18 @@ predicted_wins_salary_only_model <- result$predicted_wins
 rmse_salary_only_model <- result$rmse
 ```
 
-
-
 ```{r echo=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 ### Plot predicted vs actual wins for the smaller step search aic model
 plot_predicted_wins_versus_actual_wins("Salary Only Model", predicted_wins_salary_only_model, bbproj_tst$W, avg_pct_error_salary_only_model, rmse_salary_only_model)
 ```
 
+***
 
-# The Search for Better Multivariate Linear Regression Models For Predicting Season Wins #
+# The Search for Better Multiple Linear Regression Models For Predicting Season Wins #
 
 ## Method ##
 
-### Better Candidate Multivariate Linear Regression Models ###
+### Better Candidate Multiple Linear Regression Models ###
 
 ```{r}
 library(faraway)
@@ -675,6 +736,8 @@ plot_predicted_wins_versus_actual_wins("Smaller Step Search AIC Model", predicte
 
 ## Discussion ##
 
+***
+
 # Logistic Modeling and Prediction of Division Winners #
 
 ## Salary as a Predictor for Division Winners ##
@@ -712,7 +775,7 @@ First, let's examine prevalence of division winners.  We see that `r prevalence[
 
 ### Candidate Logistic Regression Models ###
 
-We will begin our search for a better classifier by setting up an initial logisitc regression model contain all of the predictors we would like to evaluate.  Then, we will proceed to eliminate predictors using backwards, forwards, and stepwise AIC and BIC searches.  See Appendix C for a complete evaluation of all of the models.  The following will detail the methodology using our best candiate model.
+We will begin our search for a better classifier by setting up an initial logistic regression model contain all of the predictors we would like to evaluate.  Then, we will proceed to eliminate predictors using backwards, forwards, and stepwise AIC and BIC searches.  See Appendix C for a complete evaluation of all of the models.  The following will detail the methodology using our best candidate model.
 
 ```{r warning=FALSE}
 scope <- DivWin ~ W + R + AB + H + X2B + X3B + HR + BB + SO + SB + CS + HBP + SF + RA + ER + ERA + CG + SHO + SV + IPouts + HA  + HRA + BBA + SOA + E + DP + FP + attendance + BPF + PPF + salary + RBI + GIDP + IBB + TB + SLG + OBP + OPS + WHIP + BABIP + RC + X1B + uBB + wOBA
@@ -837,11 +900,13 @@ Our misclassification rate went down with our cutoff adjustment to `r round(bic_
 
 ## Discussion ##
 
+***
+
 # Apendices #
 
-## Appendix A - Multivariate Linear Regression Models for Inference and Explanation #
+## Appendix A - Multiple Linear Regression Models for Inference and Explanation #
 
-## Appendix B - Multivariate Linear Regression Models for Prediction
+## Appendix B - Multiple Linear Regression Models for Prediction
 
 ## Appendix C - Logistic Regression Models
 
