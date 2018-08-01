@@ -110,6 +110,44 @@ Conventional wisdom is that money buys happiness (winning) in Major League Baseb
 
 As it turns out, money is not the magic elixir when it comes to assembling a winning Major League Baseball (MLB) team.  The following plot shows that salary does not highly correlate with a winning record.  This is substantiated by the companion single linear regression model and summary statistics that show that salary, while significant, only has a marginal impact on wins by an MLB team. The adjusted *$R^2$* from the simple linear regression -- using training data from 2000 through 2013 -- is low.  Furthermore, the *average percent error* that compares actual wins versus predicted wins from the the test data (2014 through 2016) is high.
 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+options(scipen=10)
+xrange <- c(min(bbproj_trn$salary-1000000),max(bbproj_trn$salary+1000000))
+yrange <- c(0,max(bbproj_trn$W+10))
+plot(bbproj_trn$W ~ bbproj_trn$salary, pch = 20, col = "grey", cex = 1.5, xlab = "Salary (US $)", ylab = "Wins", main= "Actual Salary vs Actual Wins (2000 - 2013)", xlim=xrange, ylim=yrange, type="p")
+abline(a = 81, b = 0, col = "darkorange")
+#legend("bottomright", c("training observations", "81 WINS"), lty = c(1, 2), lwd = 2, col = c("grey", "darkorange"))
+legend("bottomright", 
+        cex = 1.0, 
+        bty = "n", 
+        legend = c("training observations", "81 WINS"), 
+        text.col = c("grey", "darkorange"),
+        col = c("grey", "darkorange"), 
+        pch = c(16,15))
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+salary_only_model <- lm(W ~ salary, data = bbproj_trn)
+summary(salary_only_model)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(salary_only_model),2)))
+```
+
+```{r message=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+### average percent error for the salary only model ###
+result <- calc_average_pct_error(salary_only_model)
+avg_pct_error_salary_only_model <- result$avg_pct_error
+predicted_wins_salary_only_model <- result$predicted_wins
+rmse_salary_only_model <- result$rmse
+```
+
+```{r echo=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+### Plot predicted vs actual wins for the smaller step search aic model
+plot_predicted_wins_versus_actual_wins("Salary Only Model", predicted_wins_salary_only_model, bbproj_tst$W, avg_pct_error_salary_only_model, rmse_salary_only_model)
+```
+
 So what are the factors that move the needle?
 
 We explore two related threads in attempting to identify the factors that have a strong impact on a winning baseball team.
@@ -185,44 +223,6 @@ The team-based variables we examine fall into one of three categories: offensive
 - `FP` - Fielding percentage
 - `PPF` - Three-year park factor for pitchers
 - `WHIP` - Walks and hits per innings pitched
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-options(scipen=10)
-xrange <- c(min(bbproj_trn$salary-1000000),max(bbproj_trn$salary+1000000))
-yrange <- c(0,max(bbproj_trn$W+10))
-plot(bbproj_trn$W ~ bbproj_trn$salary, pch = 20, col = "grey", cex = 1.5, xlab = "Salary (US $)", ylab = "Wins", main= "Actual Salary vs Actual Wins (2000 - 2013)", xlim=xrange, ylim=yrange, type="p")
-abline(a = 81, b = 0, col = "darkorange")
-#legend("bottomright", c("training observations", "81 WINS"), lty = c(1, 2), lwd = 2, col = c("grey", "darkorange"))
-legend("bottomright", 
-        cex = 1.0, 
-        bty = "n", 
-        legend = c("training observations", "81 WINS"), 
-        text.col = c("grey", "darkorange"),
-        col = c("grey", "darkorange"), 
-        pch = c(16,15))
-```
-
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
-salary_only_model <- lm(W ~ salary, data = bbproj_trn)
-summary(salary_only_model)
-```
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(salary_only_model),2)))
-```
-
-```{r message=FALSE, message=FALSE, warning=FALSE, include=FALSE}
-### average percent error for the salary only model ###
-result <- calc_average_pct_error(salary_only_model)
-avg_pct_error_salary_only_model <- result$avg_pct_error
-predicted_wins_salary_only_model <- result$predicted_wins
-rmse_salary_only_model <- result$rmse
-```
-
-```{r echo=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
-### Plot predicted vs actual wins for the smaller step search aic model
-plot_predicted_wins_versus_actual_wins("Salary Only Model", predicted_wins_salary_only_model, bbproj_tst$W, avg_pct_error_salary_only_model, rmse_salary_only_model)
-```
 
 ***
 
