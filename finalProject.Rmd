@@ -54,6 +54,7 @@ plot_predicted_wins_versus_actual_wins <- function(model_name,
 
 ```{r, message=FALSE, warning=FALSE, include=FALSE}
 ### function that plots fitted values versus residuals for training data ###
+<<<<<<< HEAD
 plot_fitted_versus_residuals <- function(fitted_values, residuals, model_name) {
   plot(fitted(bic_model), resid(bic_model), 
        col = "grey", 
@@ -61,19 +62,27 @@ plot_fitted_versus_residuals <- function(fitted_values, residuals, model_name) {
        xlab = "Fitted", 
        ylab = "Residuals", 
        main = model_name)
+=======
+plot_fitted_versus_residuals <- function(fitted_values, residuals, model_name){
+  plot(fitted(bic_model), resid(bic_model), col = "grey", pch = 20,
+  xlab = "Fitted", ylab = "Residuals", main = model_name)
+>>>>>>> parent of bc84a25... Added my LM() changes added mdel_diagnostics function
   abline(h = 0, col = "darkorange", lwd = 2)
 }
+
+
 ```
 
+<<<<<<< HEAD
+```{r message = FALSE, warning = FALSE}
+library(readr)
+=======
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 ### calculate cross validated RMSE for models using training data
 calc_loocv_rmse = function(model) {
-  sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
+sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
 }
-```
-
-```{r message = FALSE, warning = FALSE}
-library(readr)
+>>>>>>> parent of bc84a25... Added my LM() changes added mdel_diagnostics function
 ```
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
@@ -172,6 +181,11 @@ predicted_wins_salary_only_model <- result$predicted_wins
 rmse_salary_only_model <- result$rmse
 ```
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> parent of bc84a25... Added my LM() changes added mdel_diagnostics function
 ```{r echo=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 ### Plot predicted vs actual wins for the smaller step search aic model
 plot_predicted_wins_versus_actual_wins("Salary Only Model", 
@@ -267,6 +281,7 @@ The team-based variables we examine fall into one of three categories: offensive
 
 ```{r message = FALSE, warning = FALSE}
 library(faraway)
+<<<<<<< HEAD
 ```
 
 ```{r}
@@ -274,6 +289,9 @@ scope <- W ~ R + AB + H + X2B + X3B + HR + BB + SO + SB + CS + HBP + SF + RA +
   ER + ERA + CG + SHO + SV + IPouts + HA  + HRA + BBA + SOA + E + DP + FP + 
   attendance + BPF + PPF + salary + RBI + GIDP + IBB + TB + SLG + OBP + OPS + 
   WHIP + BABIP + RC + X1B + uBB + wOBA
+=======
+scope <- W ~ R + AB + H + X2B + X3B + HR + BB + SO + SB + CS + HBP + SF + RA + ER + ERA + CG + SHO + SV + IPouts + HA  + HRA + BBA + SOA + E + DP + FP + attendance + BPF + PPF + salary + RBI + GIDP + IBB + TB + SLG + OBP + OPS + WHIP + BABIP + RC + X1B + uBB + wOBA
+>>>>>>> parent of bc84a25... Added my LM() changes added mdel_diagnostics function
 formula <- formula(scope)
 start_model <- lm(formula, data= bbproj_trn)
 n <- length(resid(start_model))
@@ -294,6 +312,7 @@ summary(bic_model)
 ### Backwards Search: AIC Model
 aic_model <- step(start_model, direction = "backward", trace = 0)
 summary(aic_model)
+
 ```
 
 #### Step Search: BIC Model ####
@@ -345,6 +364,7 @@ plot_fitted_versus_residuals(fitted(bic_model),
                              "Backwards Search - BIC Model")
 ```
 
+
 ```{r}
 ### Shapiro - Wilk Normality Test on Backwards Search - BIC Model ###
 shapiro.test(resid(bic_model))
@@ -356,11 +376,12 @@ qqnorm(resid(bic_model),
        col = "darkgrey")
 qqline(resid(bic_model), col = "dodgerblue", lwd = 2)
 ```
-
 ```{r}
 print(paste("Leave One Out Cross-Validated RMSE: ", 
             round(calc_loocv_rmse(bic_model), 2)))
 ```
+
+
 
 ```{r}
 ### Do the number of standard residuals greater than 2 exceed 5% of the total 
@@ -371,6 +392,8 @@ ifelse(is_std_resid_gt_five_percent_bic_model,
        "Outliers Exceed 5% of Obs", 
        "Outliers Do Not Exceed 5% of Obs")
 ```
+
+
 
 ```{r}
 ### Backwards Search - BIC Model: Unusual Observtions -- Cooks Distance > 4 / n
@@ -405,14 +428,21 @@ indices_to_drop <- findCorrelation(cor(bbproj_trn[,c(bic_model_high_vif_cols)]),
 ##### A Better And Smaller Backwards Search: BIC Model #####
 
 ```{r}
+<<<<<<< HEAD
 smaller_bic_model <- lm(W ~ AB  + BB + SO + SF + RA + CG + SV + IPouts + BBA + 
                           BABIP, data = bbproj_trn)
+=======
+
+smaller_bic_model <-  lm(W ~ AB  + BB + SO + SF + RA + CG + SV + IPouts +  BBA + BABIP, data = bbproj_trn)
+>>>>>>> parent of bc84a25... Added my LM() changes added mdel_diagnostics function
 summary(smaller_bic_model)
 ```
 
 ##### Diagnostics for the Better and Smaller Backwards Search: BIC Model #####
 
+
 ```{r}
+<<<<<<< HEAD
 vif(smaller_bic_model)
 print(paste("Number of coefficients with VIF > 5 : ", 
             sum(vif(smaller_bic_model) > 5)))
@@ -425,11 +455,25 @@ is_std_resid_gt_five_percent_bic_model <- length(std_resid_bic_model) / n > 0.05
 ifelse(is_std_resid_gt_five_percent_bic_model,
        "Outliers Exceed 5% of Obs", 
        "Outliers Do Not Exceed 5% of Obs")
+=======
+library(lmtest)
+library(faraway)
+vif(smaller_bic_model)
+print(paste("Number of coefficients with VIF > 5 : ", sum(vif(smaller_bic_model) > 5)))
+bptest(smaller_bic_model)
+shapiro.test(resid(smaller_bic_model))
+print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(smaller_bic_model),2)))
+std_resid_bic_model <- rstandard(bic_model)[abs(rstandard(smaller_bic_model)) > 2]
+is_std_resid_gt_five_percent_bic_model <- length(std_resid_bic_model) / n > 0.05
+ifelse(is_std_resid_gt_five_percent_bic_model,"Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs")
+>>>>>>> parent of bc84a25... Added my LM() changes added mdel_diagnostics function
 cd_smaller_bic_model <- cooks.distance(smaller_bic_model) > 4 / n
 print(paste("Number of Influential Observations: ", sum(cd_smaller_bic_model)))
 ```
 
+
 #### Evaluation of the Backwards Search: AIC Model ####
+
 
 ```{r}
 ### Breusch-Pagan Test on AIC Model
@@ -457,6 +501,7 @@ qqline(resid(aic_model), col = "dodgerblue", lwd = 2)
 print(paste("Leave One Out Cross-Validated RMSE: ", 
             round(calc_loocv_rmse(aic_model), 2)))
 ```
+
 
 ```{r}
 ### Do the number of standard residuals greater than 2 exceed 5% of the total 
@@ -487,6 +532,7 @@ vif_aic_model[which(vif_aic_model > 5)]
 
 #### Refining the Backwards Search: AIC Model Due to High Variance Inflation Factors ####
 
+
 ```{r}
 aic_model_high_vif_cols <- c("R", "AB", "H", "X2B", "X3B", "HR", "BB", "SO", 
                              "SF", "RA", "ER", "IPouts", "E", "FP","BPF", "PPF", 
@@ -510,6 +556,7 @@ summary(smaller_aic_model)
 ##### Diagnostics for the Better and Smaller Backwards Search: AIC Model #####
 
 ```{r}
+<<<<<<< HEAD
 vif(smaller_aic_model)
 print(paste("Number of coefficients with VIF > 5 : ", 
             sum(vif(smaller_aic_model) > 5)))
@@ -526,13 +573,29 @@ ifelse(is_std_resid_gt_five_percent_aic_model,
 cd_smaller_aic_model <- cooks.distance(smaller_aic_model) > 4 / n
 print(paste("Number of Influential Observations: ", 
             sum(cd_smaller_bic_model)))
+=======
+library(lmtest)
+library(faraway)
+vif(smaller_aic_model)
+print(paste("Number of coefficients with VIF > 5 : ", sum(vif(smaller_aic_model) > 5)))
+bptest(smaller_aic_model)
+shapiro.test(resid(smaller_aic_model))
+print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(smaller_aic_model),2)))
+std_resid_aic_model <- rstandard(smaller_aic_model)[abs(rstandard(smaller_aic_model)) > 2]
+is_std_resid_gt_five_percent_aic_model <- length(std_resid_aic_model) / n > 0.05
+ifelse(is_std_resid_gt_five_percent_aic_model,"Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs")
+cd_smaller_aic_model <- cooks.distance(smaller_aic_model) > 4 / n
+print(paste("Number of Influential Observations: ", sum(cd_smaller_bic_model)))
+>>>>>>> parent of bc84a25... Added my LM() changes added mdel_diagnostics function
 ```
+
 
 #### Evaluation of the Step Search: BIC Model ####
 
 ```{r}
 ### Breusch-Pagan Test on Step BIC Model
 bptest(step_bic_model)
+
 ```
 
 ```{r}
@@ -598,6 +661,7 @@ summary(smaller_step_bic_model)
 ##### Diagnostics for the Better and Smaller Step Search: BIC Model #####
 
 ```{r}
+<<<<<<< HEAD
 vif(smaller_step_bic_model)
 print(paste("Number of coefficients with VIF > 5 : ", 
             sum(vif(smaller_step_bic_model) > 5)))
@@ -614,6 +678,20 @@ ifelse(is_std_resid_gt_five_percent_step_bic_model,
 cd_smaller_step_bic_model <- cooks.distance(smaller_step_bic_model) > 4 / n
 print(paste("Number of Influential Observations: ", 
             sum(cd_smaller_step_bic_model)))
+=======
+library(lmtest)
+library(faraway)
+vif(smaller_step_bic_model)
+print(paste("Number of coefficients with VIF > 5 : ", sum(vif(smaller_step_bic_model) > 5)))
+bptest(smaller_step_bic_model)
+shapiro.test(resid(smaller_step_bic_model))
+print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(smaller_step_bic_model),2)))
+std_resid_step_bic_model <- rstandard(smaller_step_bic_model)[abs(rstandard(smaller_step_bic_model)) > 2]
+is_std_resid_gt_five_percent_step_bic_model <- length(std_resid_step_bic_model) / n > 0.05
+ifelse(is_std_resid_gt_five_percent_step_bic_model,"Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs")
+cd_smaller_step_bic_model <- cooks.distance(smaller_step_bic_model) > 4 / n
+print(paste("Number of Influential Observations: ", sum(cd_smaller_step_bic_model)))
+>>>>>>> parent of bc84a25... Added my LM() changes added mdel_diagnostics function
 ```
 
 #### Evaluation of the Step Search: AIC Model ####
@@ -645,6 +723,7 @@ print(paste("Leave One Out Cross-Validated RMSE: ",
             round(calc_loocv_rmse(step_aic_model), 2)))
 ```
 
+
 ```{r}
 ### Do the number of standard residuals greater than 2 exceed 5% of the total
 ### observations -- Step Search: AIC Model
@@ -656,6 +735,7 @@ ifelse(is_std_resid_gt_five_percent__step_aic_model,
        "Exceeds 5% of Obs", 
        "Does Not Exceed 5% of Obs")
 ```
+
 
 ```{r}
 ####  Step Search - AIC Model: Unusual Observtions -- Cooks Distance > 4 / n
@@ -686,6 +766,7 @@ summary(smaller_step_aic_model)
 ##### Diagnostics for the Better and Smaller Step Search: AIC Model #####
 
 ```{r}
+<<<<<<< HEAD
 vif(smaller_step_aic_model)
 print(paste("Number of coefficients with VIF > 5 : ",
             sum(vif(smaller_step_aic_model) > 5)))
@@ -702,6 +783,20 @@ ifelse(is_std_resid_gt_five_percent_step_aic_model,
 cd_smaller_step_aic_model <- cooks.distance(smaller_step_aic_model) > 4 / n
 print(paste("Number of Influential Observations: ", 
             sum(cd_smaller_step_aic_model)))
+=======
+library(lmtest)
+library(faraway)
+vif(smaller_step_aic_model)
+print(paste("Number of coefficients with VIF > 5 : ",sum(vif(smaller_step_aic_model) > 5)))
+bptest(smaller_step_aic_model)
+shapiro.test(resid(smaller_step_aic_model))
+print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(smaller_step_aic_model),2)))
+std_resid_step_aic_model <- rstandard(smaller_step_aic_model)[abs(rstandard(smaller_step_aic_model)) > 2]
+is_std_resid_gt_five_percent_step_aic_model <- length(std_resid_step_aic_model) / n > 0.05
+ifelse(is_std_resid_gt_five_percent_step_aic_model,"Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs")
+cd_smaller_step_aic_model <- cooks.distance(smaller_step_aic_model) > 4 / n
+print(paste("Number of Influential Observations: ", sum(cd_smaller_step_aic_model)))
+>>>>>>> parent of bc84a25... Added my LM() changes added mdel_diagnostics function
 ```
 
 #### Evaluation of the Forward Search: BIC Model ####
@@ -735,8 +830,13 @@ print(paste("Number of Influential Observations: ",
 ##### Diagnostics for the Better and Smaller Forward Search: AIC Model #####
 
 ** Richard: use same approach I did. (Copy and paste my code and modify.) **
+<<<<<<< HEAD
+=======
+
+>>>>>>> parent of bc84a25... Added my LM() changes added mdel_diagnostics function
 
 ### Validate Model Effectiveness Using Test Data  ###
+
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ### average percent error for the smaller backwards search bic model ###
@@ -745,6 +845,8 @@ avg_pct_error_smaller_bic_model <- result$avg_pct_error
 predicted_wins_smaller_bic_model <- result$predicted_wins
 rmse_wins_smaller_bic_model <- result$rmse
 ```
+
+
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ### Plot predicted vs actual wins for the smaller step search bic model
@@ -755,6 +857,9 @@ plot_predicted_wins_versus_actual_wins("Smaller Backwards Search BIC Model",
                                        rmse_wins_smaller_bic_model)
 ```
 
+
+
+
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 ### average percent error for the smaller backwards search aic model ###
 result <- calc_average_pct_error(smaller_aic_model)
@@ -762,6 +867,8 @@ avg_pct_error_smaller_aic_model <- result$avg_pct_error
 predicted_wins_smaller_aic_model <- result$predicted_wins
 rmse_wins_smaller_aic_model <- result$rmse
 ```
+
+
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ### Plot predicted vs actual wins for the smaller step search aic model
@@ -780,6 +887,8 @@ predicted_wins_smaller_step_bic_model <- result$predicted_wins
 rmse_wins_smaller_step_bic_model <- result$rmse
 ```
 
+
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ### Plot predicted vs actual wins for the smaller step search bic model
 plot_predicted_wins_versus_actual_wins("Smaller Step Search BIC Model", 
@@ -789,6 +898,7 @@ plot_predicted_wins_versus_actual_wins("Smaller Step Search BIC Model",
                                        rmse_wins_smaller_step_bic_model)
 ```
 
+
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 ### average percent error for the smaller step search aic model ###
 result <- calc_average_pct_error(smaller_step_aic_model)
@@ -796,6 +906,9 @@ avg_pct_error_smaller_step_aic_model <- result$avg_pct_error
 predicted_wins_smaller_step_aic_model <- result$predicted_wins
 rmse_smaller_step_aic_model <- result$rmse
 ```
+
+
+
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ### Plot predicted vs actual wins for the smaller step search aic model
@@ -808,6 +921,10 @@ plot_predicted_wins_versus_actual_wins("Smaller Step Search AIC Model",
 
 ** Richard: Copy and paste the 2 above code blocks for Plotting predicted vs actual wins for your smaller (best) Forward BIC Model.  Modify as required. **
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> parent of bc84a25... Added my LM() changes added mdel_diagnostics function
 ** Richard: Copy and paste the 2 above code blocks for Plotting predicted vs actual wins for your smaller (best) Forward AIC Model.  Modify as required. **
 
 ## Results ## 
