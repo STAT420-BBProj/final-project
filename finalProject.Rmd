@@ -1182,11 +1182,135 @@ opt_step_aic_diag <- classify_and_diagnose(step_aic_model,
 
 ## Results ##
 
+```{r include=FALSE}
+logistic_results = data.frame(
+  cutoff = c(forw_aic = 0.5,
+             back_aic = 0.5,
+             step_aic = 0.5,
+             forw_bic = 0.5,
+             back_bic = 0.5,
+             step_bic = 0.5,
+             opt_forw_aic = opt_forw_aic["cutoff"],
+             opt_back_aic = opt_back_aic["cutoff"],
+             opt_step_aic = opt_step_aic["cutoff"],
+             opt_forw_bic = opt_forw_bic["cutoff"],
+             opt_back_bic = opt_back_bic["cutoff"],
+             opt_step_bic = opt_step_bic["cutoff"]),
+  misclass = c(forw_aic = forw_aic_diag$misclassification,
+               back_aic = back_aic_diag$misclassification,
+               step_aic = step_aic_diag$misclassification,
+               forw_bic = forw_bic_diag$misclassification,
+               back_bic = back_bic_diag$misclassification,
+               step_bic = step_bic_diag$misclassification,
+               opt_forw_aic = opt_forw_aic_diag$misclassification,
+               opt_back_aic = opt_back_aic_diag$misclassification,
+               opt_step_aic = opt_step_aic_diag$misclassification,
+               opt_forw_bic = opt_forw_bic_diag$misclassification,
+               opt_back_bic = opt_back_bic_diag$misclassification,
+               opt_step_bic = opt_step_bic_diag$misclassification),
+  sensitivity = c(forw_aic = forw_aic_diag$sensitivity,
+                  back_aic = back_aic_diag$sensitivity,
+                  step_aic = step_aic_diag$sensitivity,
+                  forw_bic = forw_bic_diag$sensitivity,
+                  back_bic = back_bic_diag$sensitivity,
+                  step_bic = step_bic_diag$sensitivity,
+                  opt_forw_aic = opt_forw_aic_diag$sensitivity,
+                  opt_back_aic = opt_back_aic_diag$sensitivity,
+                  opt_step_aic = opt_step_aic_diag$sensitivity,
+                  opt_forw_bic = opt_forw_bic_diag$sensitivity,
+                  opt_back_bic = opt_back_bic_diag$sensitivity,
+                  opt_step_bic = opt_step_bic_diag$sensitivity),
+  specificity = c(forw_aic = forw_aic_diag$specificity,
+                  back_aic = back_aic_diag$specificity,
+                  step_aic = step_aic_diag$specificity,
+                  forw_bic = forw_bic_diag$specificity,
+                  back_bic = back_bic_diag$specificity,
+                  step_bic = step_bic_diag$specificity,
+                  opt_forw_aic = opt_forw_aic_diag$specificity,
+                  opt_back_aic = opt_back_aic_diag$specificity,
+                  opt_step_aic = opt_step_aic_diag$specificity,
+                  opt_forw_bic = opt_forw_bic_diag$specificity,
+                  opt_back_bic = opt_back_bic_diag$specificity,
+                  opt_step_bic = opt_step_bic_diag$specificity),
+  nparams = c(forw_aic = length(coef(forw_aic_model)),
+              back_aic = length(coef(back_aic_model)),
+              step_aic = length(coef(step_aic_model)),
+              forw_bic = length(coef(forw_bic_model)),
+              back_bic = length(coef(back_bic_model)),
+              step_bic = length(coef(step_bic_model)),
+              opt_forw_aic = length(coef(forw_aic_model)),
+              opt_back_aic = length(coef(back_aic_model)),
+              opt_step_aic = length(coef(step_aic_model)),
+              opt_forw_bic = length(coef(forw_bic_model)),
+              opt_back_bic = length(coef(back_bic_model)),
+              opt_step_bic = length(coef(step_bic_model))),
+  fn = c(forw_aic = forw_aic_diag$confusion_matrix[1, 2],
+         back_aic = back_aic_diag$confusion_matrix[1, 2],
+         step_aic = step_aic_diag$confusion_matrix[1, 2],
+         forw_bic = forw_bic_diag$confusion_matrix[1, 2],
+         back_bic = back_bic_diag$confusion_matrix[1, 2],
+         step_bic = step_bic_diag$confusion_matrix[1, 2],
+         opt_forw_aic = opt_forw_aic_diag$confusion_matrix[1, 2],
+         opt_back_aic = opt_back_aic_diag$confusion_matrix[1, 2],
+         opt_step_aic = opt_step_aic_diag$confusion_matrix[1, 2],
+         opt_forw_bic = opt_forw_bic_diag$confusion_matrix[1, 2],
+         opt_back_bic = opt_back_bic_diag$confusion_matrix[1, 2],
+         opt_step_bic = opt_step_bic_diag$confusion_matrix[1, 2]),
+  fp = c(forw_aic = forw_aic_diag$confusion_matrix[2, 1],
+         back_aic = back_aic_diag$confusion_matrix[2, 1],
+         step_aic = step_aic_diag$confusion_matrix[2, 1],
+         forw_bic = forw_bic_diag$confusion_matrix[2, 1],
+         back_bic = back_bic_diag$confusion_matrix[2, 1],
+         step_bic = step_bic_diag$confusion_matrix[2, 1],
+         opt_forw_aic = opt_forw_aic_diag$confusion_matrix[2, 1],
+         opt_back_aic = opt_back_aic_diag$confusion_matrix[2, 1],
+         opt_step_aic = opt_step_aic_diag$confusion_matrix[2, 1],
+         opt_forw_bic = opt_forw_bic_diag$confusion_matrix[2, 1],
+         opt_back_bic = opt_back_bic_diag$confusion_matrix[2, 1],
+         opt_step_bic = opt_step_bic_diag$confusion_matrix[2, 1])
+)
+row.names(logistic_results) = c("Forward AIC",
+                                "Backward AIC",
+                                "Stepwise AIC",
+                                "Forward BIC",
+                                "Backward BIC",
+                                "Stepwise BIC",
+                                "Forward AIC (Optimal Cutoff)",
+                                "Backward AIC (Optimal Cutoff)",
+                                "Stepwise AIC (Optimal Cutoff)",
+                                "Forward BIC (Optimal Cutoff)",
+                                "Backward BIC (Optimal Cutoff)",
+                                "Stepwise BIC (Optimal Cutoff)")
+logistic_col_names = c("Cutoff",
+                       "Misclassification Rate",
+                       "Sensitivity",
+                       "Specificity",
+                       "p",
+                       "False Negatives",
+                       "False Positives")
+```
+
+```{r}
+library(knitr)
+kable(logistic_results, col.names = logistic_col_names, 
+      caption = "Logistic Regression Model Result Summary")
+```
+
 ### And the Winning Logistic Regression Model is... ###
+
+Forward-search BIC model with an optimal cutoff of 0.3.
+
+\[
+\log \bigg(\frac{P[DivWin = 1]}{1 - P[DivWin = 1]} \bigg) = \beta_0 + \beta_W W + \beta_{X2B} X2B
+\]
 
 ***
 
 ## Discussion ##
+
+We choose the forward-search BIC model with a cutoff value of 0.3 as our best predictive model.  While there are a few models that have an equivalent minimal misclassification rate, the forward BIC model has the least number of predictors and therefore the easiest to interpret.  Additionally, the sensitivity and specificity (false negatives and false positives, respectively) are minimized and nearly equivalent.
+
+Our winning model tells us that a team's win total `W` and double tally `X2B` has a significant relationship with that team's probability of winning their division.  The relationship with `W` is fairly self evident and quite boring given the definition of a division winner - the team  with the most wins in their division at the end of the season is declared the division champ.  Interestingly, however, there is a somewhat-significant negative relationship with doubles.  That is, given two teams with the same number of wins, the team with the *fewer* number of doubles would have a higher probability of winning their division.  What does this mean?  Well, one explanation is, given all else equal, it's possible the game favors teams proficient at small ball - being able to manufacture runs with walks, bunts, steals, and sacrifice flies - rather than a team's capacity of lacing ropes to the alley in left-center.
 
 ***
 
