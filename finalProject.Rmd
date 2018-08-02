@@ -7,7 +7,7 @@ output:
      toc: yes
      toc_depth: 5
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -57,7 +57,7 @@ plot_predicted_wins_versus_actual_wins <- function(model_name,
 ```{r, message=FALSE, warning=FALSE, include=FALSE}
 ### function that plots fitted values versus residuals for training data ###
 plot_fitted_versus_residuals <- function(fitted_values, residuals, model_name) {
-  plot(fitted(bic_model), resid(bic_model), 
+  plot(fitted_values, residuals, 
        col = "grey", 
        pch = 20, 
        xlab = "Fitted", 
@@ -92,8 +92,6 @@ model_diagnostics = function(model) {
   std_resid <- rstandard(model)[abs(rstandard(model)) > 2]
   is_std_resid_gt_five_percent <- length(std_resid) / n > 0.05
   print(ifelse(is_std_resid_gt_five_percent, "Outliers Exceed 5% of Obs", "Outliers Do Not Exceed 5% of Obs"))
-  cd_found <- cooks.distance(model) > 4 / n
-  print(paste("Number of Influential Observations: ", sum(cd_found)))
 }
 ```
 
@@ -282,7 +280,7 @@ The team-based variables we examine fall into one of three categories: offensive
 
 # The Search for Better Multiple Linear Regression Models For Predicting Season Wins #
 
-## Method ##
+## Methodology ##
 
 ### Better Candidate Multiple Linear Regression Models ###
 
@@ -393,16 +391,6 @@ ifelse(is_std_resid_gt_five_percent_bic_model,
 ```
 
 ```{r}
-### Backwards Search - BIC Model: Unusual Observtions -- Cooks Distance > 4 / n
-cd_bic_model <- cooks.distance(bic_model) > 4 / n
-print(paste("Number of Influential Observations: ", sum(cd_bic_model)))
-```
-
-```{r}
-bbproj_trn[which(cd_bic_model),]
-```
-
-```{r}
 ### VIF > 5 for Backwards Search: BIC Model Coefficients
 vif_bic_model <- vif(bic_model)
 vif_bic_model[which(vif_bic_model > 5)]
@@ -474,16 +462,6 @@ ifelse(is_std_resid_gt_five_percent_aic_model,
        "Outliers Do Not Exceed 5% of Obs")
 ```
 
-```{r}
-### Backwards Search - AIC Model: Unusual Observtions -- 
-### Cooks Distance > 4 / n
-cd_aic_model <- cooks.distance(aic_model) > 4 / n
-print(paste("Number of Influential Observations: ", sum(cd_aic_model)))
-```
-
-```{r}
-bbproj_trn[which(cd_aic_model),]
-```
 
 ```{r}
 ### VIF > 5 for Backwards Search: AIC Model Coefficients
@@ -559,15 +537,6 @@ ifelse(is_std_resid_gt_five_percent__step_bic_model, "Exceeds 5% of Obs",
        "Does Not Exceed 5% of Obs")
 ```
 
-```{r}
-####  Step Search - BIC Model: Unusual Observtions -- Cooks Distance > 4 / n
-cd_step_bic_model <- cooks.distance(step_bic_model) > 4 / n
-print(paste("Number of Influential Observations: ", sum(cd_step_bic_model)))
-```
-
-```{r}
-bbproj_trn[which(cd_step_bic_model),]
-```
 
 ```{r}
 ### VIF > 5 for Step Search: BIC Model Coefficients
@@ -633,16 +602,6 @@ ifelse(is_std_resid_gt_five_percent__step_aic_model,
 ```
 
 ```{r}
-####  Step Search - AIC Model: Unusual Observtions -- Cooks Distance > 4 / n
-cd_step_aic_model <- cooks.distance(step_aic_model) > 4 / n
-print(paste("Number of Influential Observations: ", sum(cd_step_aic_model)))
-```
-
-```{r}
-bbproj_trn[which(cd_step_aic_model),]
-```
-
-```{r}
 ### VIF > 5 for Step Search: AIC Model Coefficients
 vif_step_aic_model <- vif(step_aic_model)
 vif_step_aic_model[which(vif_step_aic_model > 5)]
@@ -693,16 +652,6 @@ print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(bic_fo
 std_resid <- rstandard(bic_forward_model)[abs(rstandard(bic_forward_model)) > 2]
 is_std_resid_gt_five_percent <- length(std_resid) / n > 0.05
 ifelse(is_std_resid_gt_five_percent,"Exceeds 5% of Obs", "Does Not Exceed 5% of Obs")
-```
-
-```{r}
-####  Step Search - AIC Model: Unusual Observtions -- Cooks Distance > 4 / n
-cd_found <- cooks.distance(bic_forward_model) > 4 / n
-print(paste("Number of Influential Observations: ", sum(cd_found)))
-```
-
-```{r}
-bbproj_trn[which(cd_found),]
 ```
 
 ```{r}
@@ -769,16 +718,6 @@ print(paste("Leave One Out Cross-Validated RMSE: ", round(calc_loocv_rmse(aic_fo
 std_resid <- rstandard(aic_forward_model)[abs(rstandard(aic_forward_model)) > 2]
 is_std_resid_gt_five_percent <- length(std_resid) / n > 0.05
 ifelse(is_std_resid_gt_five_percent,"Exceeds 5% of Obs", "Does Not Exceed 5% of Obs")
-```
-
-```{r}
-####  Step Search - AIC Model: Unusual Observtions -- Cooks Distance > 4 / n
-cd_found <- cooks.distance(aic_forward_model) > 4 / n
-print(paste("Number of Influential Observations: ", sum(cd_found)))
-```
-
-```{r}
-bbproj_trn[which(cd_found),]
 ```
 
 ```{r}
@@ -966,7 +905,7 @@ salary_prediction <- ifelse(predict(salary_only_model,
 
 First, let's examine prevalence of division winners.  We see that `r prevalence[2] * 100`% of the teams were division winners, which makes sense, since there are 6 divisions and 30 MLB teams, therefore you will only have 6 division winners per year.  Our salary model has a misclassification rate of `r round(salary_misclass, 3)`, which is worse than our prevalence.  We would have a better misclassification rate if we simply stated that there are no division winners!  We can certainly do better than this.
 
-## Method ##
+## Methodology ##
 
 ### Candidate Logistic Regression Models ###
 
@@ -1214,11 +1153,7 @@ opt_step_aic_diag <- classify_and_diagnose(step_aic_model,
 
 # Apendices #
 
-## Appendix A - Multiple Linear Regression Models for Inference and Explanation #
-
-## Appendix B - Multiple Linear Regression Models for Prediction
-
-## Appendix C - Logistic Regression Models
+## Appendix A - Logistic Regression Models
 
 ### Classify and Diagnose Function {#classify_and_diagnose}
 
