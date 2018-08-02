@@ -204,7 +204,8 @@ So what are the factors that move the needle?
 
 We explore two related threads in attempting to identify the factors that have a strong impact on a winning baseball team.
 
-The first thread uses multiple linear regression to identify the factors that influence a team's winning record over the course of a season.  The second thread uses logistic regression to identify the factors that influence a team's ability to win their division.
+The first thread uses multiple linear regression to identify the factors that influence a team's winning record over the course of a regular Major League Baseball (MLB) season.  
+The second thread uses logistic regression to identify the factors that influence a team's ability to win their division.
 
 ## Data ##
 
@@ -278,11 +279,49 @@ The team-based variables we examine fall into one of three categories: offensive
 
 ***
 
-# The Search for Better Multiple Linear Regression Models For Predicting Season Wins #
+# The Search for Better Multiple Linear Regression Models For Predicting Regular Season Team Wins #
 
 ## Methodology ##
 
-### Better Candidate Multiple Linear Regression Models ###
+The goal of this thread is to find an Multiple Linear Regression (MLR) model that is simple enough to explain the relationship between the response variable (regular season wins) and the predictors.  This means
+we are interested a reasonably small MLR model that is easy to interpret.  Equally important is the need for the model to predict well against the test data set from the 2014, 2015 and
+2016 MLB regular seasons.  This means we have to have sacrifice a certain degree of model simplicity.  In short, we are trying to find a model that will allow us to "have our cake and eat it too".
+
+The approach we take is to employ all three seach procedures -- *Backward*, *Forward* and *Step* -- against the *Akaike Information Criterion* (AIC) and the *Baysesian Information Criterion* (BIC) quality
+criterion in order to find the model that best meets the goals of this thread.
+
+We start by creating the following six initial models. 
+
+- Backward Search - BIC Model
+- Backward Search - AIC Model
+- Step Search - BIC Model
+- Step Search - AIC Model
+- Forward Search - BIC Model
+- Forward Search - AIC Model.
+
+We then use an iterative process of model evaluation and refinement until we have produced a line-up of candidate models that move on to the next phase of assessment:  prediction against the test dataset.
+
+The model evaluation and refinement process uses the following six diagnostics tests.
+
+- Breusch-Pagan Test (BP Test) to assess whether or not each of the six initial models meets the equal variance of residuals requirement.  A *p_value* greater than *0.05* indicates there is a high 
+likelihood a given model satisfies the equal variance of residuals requirement.
+- Shapiro-Wilk Test to asssess whether or not each of the six initial models meet the normal distribution of residuals requirement.  A *p_value* greater than *0.05* indicates there is a high 
+likelihood that a given model satisfies the normal distribution of residuals requirement.
+- A count of the number of unusual observations.  The test counts the number of standardized residuals that exceed the magnitude of 2. The threshold for concern is when the count exceeds 5% of the total number of observations.
+- Leave One Out Cross-Validated RMSE (LOOCV-RMSE) to assess how well a given model generalizes to unseen observations (e.g., the test data).  The smaller the value the more likely a given model
+will do a good job predicting the response variable (e.g., regalar season wins by an MLB team).
+- Calculation of the Variance Inflation Factor (VIF) for each of the estimated predictor coefficients ($\hat{\beta}_j$).  A VIF score greater than 5 indicates that a given predictor is highly collinear.
+- A check to make sure that the each estimated predictor coefficient ($\hat{\beta}_j$) is likely not equal to 0. (e.g., Reject $H_0: B_j = 0$).  We fail to reject $H_0: B_j = 0$ when
+$\hat{\beta}_j$ has a *p_value* greater than *0.05*.
+
+If a model passes all six of these diagnostic tests then it is considered worthy of being evaluated against the test data set.  From a nomenclature perspective, each model that passes this hurdle is called *candidate* model.  If a model does not pass all six of these diagnostic tests we refit the model after removing a single predictor.  We then perform the same six diagnostic tests. We repeat this cycle until a model is produced that passes all six of the diagnostic tests. 
+
+Once *candidate* models are identified, we assess their ability to predict regular season team wins against the test dataset.  The *candidate* model with the lowest 
+*Average Percent Error* and the lowest *Test RMSE* is declared the winner.
+
+Please note that the response variable is designated as capital *W* in models that are described below.
+
+### The Six Initial Multiple Linear Regression Models ###
 
 ```{r}
 scope <- W ~ R + AB + H + X2B + X3B + HR + BB + SO + SB + CS + HBP + SF + RA + 
@@ -347,7 +386,7 @@ aic_forward_model <-  step(step_search_start_model, scope = scope, trace = 0)
 summary(aic_forward_model)
 ```
 
-### Evaluation and Refinement of the Candidate Models ###
+### Creating Candidate Models By Evaluating and Refining the Six Initial Models ###
 
 
 #### Evaluation of the Backwards Search: BIC Model ####
