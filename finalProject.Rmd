@@ -971,20 +971,20 @@ curve(predict(salary_only_model, data.frame(salary = x), type = "response"),
 Graphically, a team's payroll seems to be moderately influential in predicting their chances of taking home a division crown.  Indeed, our Wald test for `salary` alone yields a p-value of `r salary_only_summary$coefficients["salary", "Pr(>|z|)"]`, allowing us to reject the null hypothesis ($H_0 : \beta_{salary} = 0$) for any reasonable value for $\alpha$.  So what happens when we look at our salary model's misclassification rate?
 
 ```{r}
-salary_prediction <- ifelse(predict(salary_only_model, 
-                                    bbproj_tst, 
+salary_prediction <- ifelse(predict(salary_only_model,
+                                    bbproj_trn,
                                     type = "response") > 0.5, "Y", "N")
-(prevalence = table(bbproj_tst$DivWin) / nrow(bbproj_tst))
-(salary_misclass = mean(salary_prediction != bbproj_tst$DivWin))
+(prevalence = table(bbproj_trn$DivWin) / nrow(bbproj_trn))
+(salary_misclass = mean(salary_prediction != bbproj_trn$DivWin))
 ```
 
-First, let's examine prevalence of division winners.  We see that `r prevalence[2] * 100`% of the teams were division winners, which makes sense, since there are 6 divisions and 30 MLB teams, therefore you will only have 6 division winners per year.  Our salary model has a misclassification rate of `r round(salary_misclass, 3)`, which is worse than our prevalence.  We would have a better misclassification rate if we simply stated that there are no division winners!  We can certainly do better than this.
+First, let's examine prevalence of division winners.  We see that `r prevalence[2] * 100`% of the teams were division winners, which makes sense, since there are 6 divisions and 30 MLB teams, therefore you will only have 6 division winners per year.  Our salary model has a misclassification rate of `r round(salary_misclass, 3)`, which is almost as bad as our prevalence.  We would only have a slightly worse misclassification rate if we simply stated that there are no division winners!  We can certainly do better than this.
 
 ## Methodology ##
 
 Similar to the MLR section, the ultimate goal of this thread is to find a logisitic regression model that predicts well and is easily interpretible.  To facilitate interpretibility, we utilize the `step` function to capture significant predictors using both AIC and BIC criteria, searching "forward", "backward", and "stepwise".  We strive to minimize the number of predictors while maximizing the model's predictive capabilities.
 
-To predict efficiently, we develop Bayes classifiers based on the models and evaluate them by calculating their sensitivity, specificity, and misclassification rate using our test dataset from the 2014, 2015, and 2016 MLB seasons.  Further, we optimize the classifiers by choosing a cutoff value that minimizes the misclassification rate while maintaining a small delta between sensitivity and specificity.
+To predict efficiently, we develop Bayes classifiers based on the models and evaluate them by calculating their sensitivity, specificity, and misclassification rate using our test dataset from the 2014, 2015, and 2016 MLB seasons.  Further, we optimize the classifiers by choosing a cutoff value that minimizes the deltas between sensitivity and specificity.  Finally, we will cross validate the misclassifications and choose a model that has the lowest 5-fold cross validation misclassification rate while keeping the other diagnostics in mind.
 
 ### Candidate Logistic Regression Models ###
 
