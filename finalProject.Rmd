@@ -984,7 +984,7 @@ First, let's examine prevalence of division winners.  We see that `r prevalence[
 
 Similar to the MLR section, the ultimate goal of this thread is to find a logisitic regression model that predicts well and is easily interpretible.  To facilitate interpretibility, we utilize the `step` function to capture significant predictors using both AIC and BIC criteria, searching "forward", "backward", and "stepwise".  We strive to minimize the number of predictors while maximizing the model's predictive capabilities.
 
-To predict efficiently, we develop Bayes classifiers based on the models and evaluate them by calculating their sensitivity, specificity, and misclassification rate using our test dataset from the 2014, 2015, and 2016 MLB seasons.  Further, we optimize the classifiers by choosing a cutoff value that minimizes the deltas between sensitivity and specificity.  Finally, we will cross validate the misclassifications and choose a model that has the lowest 5-fold cross validation misclassification rate while keeping the other diagnostics in mind.
+To predict efficiently, we develop Bayes classifiers based on the models and evaluate them by calculating their sensitivity, specificity, and misclassification rate using our test dataset from the 2014, 2015, and 2016 MLB seasons.  Further, we optimize the classifiers by choosing a cutoff value that minimizes the deltas between sensitivity and specificity.  Finally, we cross validate the misclassifications and choose a model that has the lowest 5-fold cross validation misclassification rate while keeping the other diagnostics in mind.
 
 ### Candidate Logistic Regression Models ###
 
@@ -1077,11 +1077,12 @@ opt_logistic_cutoff = function(model, cut_start = 0.01, cut_end = 0.99,
   }
   
   # Get the indicies of the smallest misclassification rates
-  min_misclass = which(misclass == min(misclass))
+  # min_misclass = which(misclass == min(misclass))
   
   # Get the smallest delta between sensitivity and specificity at the 
   # identified misclassification indicies
-  min_delta = min_misclass[which.min(delta[min_misclass])]
+  # min_delta = min_misclass[which.min(delta[min_misclass])]
+  min_delta = which.min(delta)
   
   # Plot sensitivity, specificity, and misclassification if requested
   if (plotit) {
@@ -1097,15 +1098,14 @@ opt_logistic_cutoff = function(model, cut_start = 0.01, cut_end = 0.99,
           col = "darkslategray4", 
           type = "b",
           pch = 20)
-    lines(misclass ~ cutoffs, 
-          col = "darkorange", 
-          type = "b",
-          pch = 20)
+    # lines(misclass ~ cutoffs, 
+    #       col = "darkorange", 
+    #       type = "b",
+    #       pch = 20)
     abline(v = cutoffs[min_delta], lty = 2)
     legend("topright", c("Sensitivity", 
-                         "Specificity", 
-                         "Misclassification"),
-           col = c("tomato", "darkslategray4", "darkorange"),
+                         "Specificity"),
+           col = c("tomato", "darkslategray4"),
            lwd = 1,
            pch = 20)
   }
@@ -1113,7 +1113,7 @@ opt_logistic_cutoff = function(model, cut_start = 0.01, cut_end = 0.99,
   # Return the misclassification, sensitivity, and specificity at the optimal
   # cutoff value
   c(cutoff = cutoffs[min_delta],
-    misclass = misclass[min_delta], 
+    misclass = misclass[which(cutoffs == 0.5)], 
     sensitivity = sens[min_delta],
     specificity = spec[min_delta])
 }
