@@ -91,9 +91,6 @@ img {
 .tabbed-pane {
   padding-top: 12px;
 }
-.html-widget {
-  margin-bottom: 20px;
-}
 button.code-folding-btn:focus {
   outline: none;
 }
@@ -225,6 +222,7 @@ $(document).ready(function () {
 <li><a href="#optimal-cutoff-5">Optimal Cutoff</a></li>
 </ul></li>
 </ul></li>
+<li><a href="#appendix-b---data-preparation">Appendix B - Data Preparation</a></li>
 </ul></li>
 </ul>
 </div>
@@ -440,7 +438,7 @@ summary(aic_model)</code></pre>
 ## 
 ## Coefficients:
 ##                      Estimate        Std. Error t value Pr(&gt;|t|)    
-## (Intercept) 1224.786161854707  345.895721393242   3.541 0.000446 ***
+## (Intercept) 1224.786161856054  345.895721393241   3.541 0.000446 ***
 ## R              0.080154881164    0.006191576342  12.946  &lt; 2e-16 ***
 ## AB            -0.115370180878    0.014302511665  -8.066 8.71e-15 ***
 ## H              0.294198894471    0.049836065902   5.903 7.66e-09 ***
@@ -456,13 +454,13 @@ summary(aic_model)</code></pre>
 ## IPouts         0.058770788132    0.007084174725   8.296 1.71e-15 ***
 ## HRA           -0.022515047089    0.008581255343  -2.624 0.009033 ** 
 ## BBA           -0.008098302987    0.002628330947  -3.081 0.002206 ** 
-## E             -0.172337651761    0.056648920630  -3.042 0.002505 ** 
-## FP          -977.032306332758  348.883980530369  -2.800 0.005353 ** 
+## E             -0.172337651762    0.056648920630  -3.042 0.002505 ** 
+## FP          -977.032306334171  348.883980530384  -2.800 0.005353 ** 
 ## BPF           -0.639264997534    0.233137357795  -2.742 0.006383 ** 
-## PPF            0.599162430181    0.234965627610   2.550 0.011148 *  
+## PPF            0.599162430182    0.234965627610   2.550 0.011148 *  
 ## salary         0.000000008060    0.000000004559   1.768 0.077838 .  
 ## GIDP          -0.047142718419    0.012117297039  -3.891 0.000117 ***
-## BABIP       -723.253375876375  138.139293383544  -5.236 2.67e-07 ***
+## BABIP       -723.253375876249  138.139293383540  -5.236 2.67e-07 ***
 ## RC            -0.109319751926    0.024176237333  -4.522 8.11e-06 ***
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -520,7 +518,7 @@ summary(step_aic_model)</code></pre>
 ## 
 ## Coefficients:
 ##                      Estimate        Std. Error t value          Pr(&gt;|t|)    
-## (Intercept)  914.034003144572  347.045241981607   2.634          0.008773 ** 
+## (Intercept)  914.034003146080  347.045241981605   2.634          0.008773 ** 
 ## SV             0.355614506804    0.024640390657  14.432           &lt; 2e-16 ***
 ## RA            -0.050247955833    0.006340159551  -7.925 0.000000000000023 ***
 ## CG             0.153017526099    0.044231471311   3.459          0.000600 ***
@@ -536,7 +534,7 @@ summary(step_aic_model)</code></pre>
 ## BBA           -0.010442337072    0.003185502948  -3.278          0.001137 ** 
 ## HRA           -0.021622522454    0.008707631554  -2.483          0.013432 *  
 ## E             -0.161327447529    0.057050198834  -2.828          0.004923 ** 
-## FP          -884.643492393877  352.491658585801  -2.510          0.012479 *  
+## FP          -884.643492395422  352.491658585804  -2.510          0.012479 *  
 ## BPF           -0.629501587254    0.230983379839  -2.725          0.006707 ** 
 ## PPF            0.584792736874    0.231600448463   2.525          0.011956 *  
 ## salary         0.000000007730    0.000000004537   1.704          0.089183 .  
@@ -594,7 +592,7 @@ summary(aic_forward_model)</code></pre>
 ## 
 ## Coefficients:
 ##                      Estimate        Std. Error t value          Pr(&gt;|t|)    
-## (Intercept)  914.034003144572  347.045241981607   2.634          0.008773 ** 
+## (Intercept)  914.034003146080  347.045241981605   2.634          0.008773 ** 
 ## SV             0.355614506804    0.024640390657  14.432           &lt; 2e-16 ***
 ## RA            -0.050247955833    0.006340159551  -7.925 0.000000000000023 ***
 ## CG             0.153017526099    0.044231471311   3.459          0.000600 ***
@@ -610,7 +608,7 @@ summary(aic_forward_model)</code></pre>
 ## BBA           -0.010442337072    0.003185502948  -3.278          0.001137 ** 
 ## HRA           -0.021622522454    0.008707631554  -2.483          0.013432 *  
 ## E             -0.161327447529    0.057050198834  -2.828          0.004923 ** 
-## FP          -884.643492393877  352.491658585801  -2.510          0.012479 *  
+## FP          -884.643492395422  352.491658585804  -2.510          0.012479 *  
 ## BPF           -0.629501587254    0.230983379839  -2.725          0.006707 ** 
 ## PPF            0.584792736874    0.231600448463   2.525          0.011956 *  
 ## salary         0.000000007730    0.000000004537   1.704          0.089183 .  
@@ -1207,7 +1205,7 @@ summary(smaller_model)</code></pre>
 ## 
 ## Coefficients:
 ##                      Estimate        Std. Error t value         Pr(&gt;|t|)    
-## (Intercept) -130.372691160134   40.942184890385  -3.184         0.001563 ** 
+## (Intercept) -130.372691160133   40.942184890385  -3.184         0.001563 ** 
 ## SV             0.691822762359    0.051293290999  13.488          &lt; 2e-16 ***
 ## CG             0.451451517680    0.097869852286   4.613 0.00000534151951 ***
 ## X3B           -0.044130287173    0.037206097668  -1.186         0.236278    
@@ -1939,7 +1937,7 @@ back_aic_diag &lt;- classify_and_diagnose(back_aic_model)</code></pre>
 ## 
 ## Coefficients:
 ##                      Estimate        Std. Error z value      Pr(&gt;|z|)    
-## (Intercept)       -140.179260        693.655477  -0.202      0.839848    
+## (Intercept)       -140.179268        693.655435  -0.202      0.839848    
 ## W                    0.545656          0.090798   6.010 0.00000000186 ***
 ## R                   -0.076857          0.035782  -2.148      0.031717 *  
 ## AB                   0.183520          0.063041   2.911      0.003601 ** 
@@ -1951,15 +1949,15 @@ back_aic_diag &lt;- classify_and_diagnose(back_aic_model)</code></pre>
 ## ER                   0.024676          0.008386   2.943      0.003255 ** 
 ## IPouts               0.022175          0.011255   1.970      0.048806 *  
 ## E                   -0.168360          0.092043  -1.829      0.067378 .  
-## FP               -1111.221692        583.517352  -1.904      0.056865 .  
+## FP               -1111.221677        583.517328  -1.904      0.056865 .  
 ## BPF                  0.736250          0.339446   2.169      0.030084 *  
-## PPF                 -0.674039          0.343047  -1.965      0.049431 *  
+## PPF                 -0.674039          0.343047  -1.965      0.049430 *  
 ## RBI                  0.070973          0.036748   1.931      0.053438 .  
 ## IBB                 -0.299451          0.134303  -2.230      0.025769 *  
-## SLG          851959768.502481  417793032.999057   2.039      0.041431 *  
-## OBP          851964600.961048  417793074.085624   2.039      0.041430 *  
-## OPS         -851958005.019395  417793016.415709  -2.039      0.041431 *  
-## wOBA             -5332.125355       2319.746049  -2.299      0.021529 *  
+## SLG          851959694.753834  417793029.895435   2.039      0.041431 *  
+## OBP          851964527.212391  417793070.982018   2.039      0.041430 *  
+## OPS         -851957931.270739  417793013.312068  -2.039      0.041431 *  
+## wOBA             -5332.125386       2319.745911  -2.299      0.021529 *  
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
@@ -2124,6 +2122,23 @@ opt_step_aic_diag &lt;- classify_and_diagnose(step_aic_model,
 ##          Y  6 17</code></pre>
 </div>
 </div>
+</div>
+<div id="appendix-b---data-preparation" class="section level2">
+<h2>Appendix B - Data Preparation</h2>
+<p>In the loaddata.R script we load 3 data files “Salaries.csv”, Teams.csv and “Batting.csv.” For each we limited the data to the years of 2000 through 2016. All 3 dataframes have factor columns that were impacted by the filtering of the data. This was corrected using the <code>droplevels()</code> function. We then summed the Salaries data by YearID and TeamID and added that as the ‘team_salaries’ column. We performed the same for the Batting data and added that as the ‘team_batting’ column.</p>
+<p>Next we added calculated columns:</p>
+<ul>
+<li><code>TB</code> - Total bases</li>
+<li><code>SLG</code> - Slugging percentage</li>
+<li><code>OBP</code> - On-base percentage</li>
+<li><code>OPS</code> - On-base plus slugging percentage</li>
+<li><code>WHIP</code> - Walks and hits per innings pitched</li>
+<li><code>BABIP</code> - Batting average for balls in play</li>
+<li><code>RC</code> - Runs created</li>
+<li><code>uBB</code> - Unintentional walks</li>
+<li><code>wOBA</code> - Weighted on-base average</li>
+</ul>
+<p>We then wrote the data out to the CSV file “bbproj.csv.”</p>
 </div>
 </div>
 

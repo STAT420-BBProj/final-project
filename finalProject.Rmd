@@ -1487,3 +1487,21 @@ step_aic_diag
 opt_logistic_cutoff(step_aic_model, cut_start = 0.1, cut_end = 0.8)
 opt_step_aic_diag$confusion_matrix
 ```
+
+## Appendix B - Data Preparation
+
+In the loaddata.R script we load 3 data files "Salaries.csv", Teams.csv and "Batting.csv." For each we limited the data to the years of 2000 through 2016.  All 3 dataframes have factor columns that were impacted by the filtering of the data. This was corrected using the `droplevels()` function. We then summed the Salaries data by YearID and TeamID and added that as the 'team_salaries' column. We performed the same for the Batting data and added that as the 'team_batting' column.
+
+Next we added calculated columns: 
+
+- `TB` - Total bases
+- `SLG` - Slugging percentage
+- `OBP` - On-base percentage
+- `OPS` - On-base plus slugging percentage
+- `WHIP` - Walks and hits per innings pitched
+- `BABIP` - Batting average for balls in play
+- `RC` - Runs created
+- `uBB` - Unintentional walks
+- `wOBA` - Weighted on-base average
+
+We then wrote the data out to the CSV file "bbproj.csv."
