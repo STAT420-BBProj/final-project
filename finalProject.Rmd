@@ -982,13 +982,13 @@ First, let's examine prevalence of division winners.  We see that `r prevalence[
 
 ## Methodology ##
 
-Similar to the MLR section, the ultimate goal of this thread is to find a logisitic regression model that predicts well and is easily interpretible.  To facilitate interpretibility, we utilize the `step` function to capture significant predictors using both AIC and BIC criteria, searching "forward", "backward", and "stepwise".  We strive to minimize the number of predictors while maximizing the model's predictive capabilities.
+Similar to the MLR section, the ultimate goal of this thread is to find a logistic regression model that predicts well and is easily interpretable.  To facilitate interpretability, we utilize the `step` function to capture significant predictors using both AIC and BIC criteria, searching "forward", "backward", and "stepwise".  We strive to minimize the number of predictors while maximizing the model's predictive capabilities.
 
 To predict efficiently, we develop Bayes classifiers based on the models and evaluate them by calculating their sensitivity, specificity, and misclassification rate using our test dataset from the 2014, 2015, and 2016 MLB seasons.  Finally, we cross validate the misclassifications and choose a model that has the lowest 5-fold cross validation misclassification rate while keeping the other diagnostics in mind.
 
 ### Candidate Logistic Regression Models ###
 
-We will begin our search for a better classifier by setting up an initial logistic regression model contain all of the predictors we would like to evaluate.  Then, we will proceed to eliminate predictors using backwards, forwards, and stepwise AIC and BIC searches.  See Appendix A for a complete evaluation of the remaining model derivations and classifications.  The following will detail the methodology using our best candidate model.
+We will begin our search for a better classifier by setting up an initial logistic regression model contain all of the predictors we would like to evaluate.  Then, we will proceed to eliminate predictors using backwards, forwards, and stepwise AIC and BIC searches.  See Appendix B for a complete evaluation of the remaining model derivations and classifications.  The following will detail the methodology using our best candidate model.
 
 First, we set our scope and generate our initial Generalized Linear Model with only the intercept as the predictor.
 
@@ -1023,7 +1023,7 @@ where the log odds of a team winning their division is dependent upon cumulative
 
 First, we evaluate our model with our training data by examining its 5-fold cross-validation misclassification rate.  We choose this diagnostic over the training misclassification rate to avoid giving preference to larger models.  This will have the added bonus of reducing the probability of overfitting.
 
-Here we develop a simple function to perform our cross validiation (see the `cross_validate` function in [Appendix B](#cross_validate)).
+Here we develop a simple function to perform our cross validation (see the `cross_validate` function in [Appendix C](#cross_validate)).
 
 ```{r cross_validate, echo = FALSE}
 cross_validate = function(model, data = bbproj_trn, folds = 5) {
@@ -1038,7 +1038,7 @@ cross_validate = function(model, data = bbproj_trn, folds = 5) {
 
 This specific model performed the best out of the six selected logistic regression models with a 5-fold cross-validation misclassification rate of `r round(aic_cv, 3)`.
 
-Next, we will create a function that will evaluate this model using a confusion matrix of our test data to calculate its sensitivity, specificity, and its misclassification rate (the `classify_and_diagnose` function code can be found in [Appendix B](#classify_and_diagnose)).  We will proceed with a default cutoff value of 0.5.
+Next, we will create a function that will evaluate this model using a confusion matrix of our test data to calculate its sensitivity, specificity, and its misclassification rate (the `classify_and_diagnose` function code can be found in [Appendix C](#classify_and_diagnose)).  We will proceed with a default cutoff value of 0.5.
 
 ```{r classify_and_diagnose, echo = FALSE}
 classify_and_diagnose = function(model, data = bbproj_tst, 
@@ -1220,7 +1220,7 @@ The forward-search AIC model.
 
 ## Discussion ##
 
-We choose the forward-search AIC model depite having twice as many predictors as the forward-search BIC model and a near-identical 5-fold cross-validation misclassification rate.  The Likelihood Ratio test comparing the two models tells us that the additional 3 predictors are significant with a p-value of `r forw_likelihood_ratio[2, "Pr(>Chi)"]`.  For our test dataset, we see that this performs well, correctly classifying 80 out of 90 division winners with a cutoff value of 0.5.
+We choose the forward-search AIC model despite having twice as many predictors as the forward-search BIC model and a near-identical 5-fold cross-validation misclassification rate.  The Likelihood Ratio test comparing the two models tells us that the additional 3 predictors are significant with a p-value of `r forw_likelihood_ratio[2, "Pr(>Chi)"]`.  For our test dataset, we see that this performs well, correctly classifying 80 out of 90 division winners with a cutoff value of 0.5.
 
 ```{r}
 forw_aic_diag$confusion_matrix
@@ -1234,9 +1234,27 @@ Similarly, we would expect that the number of double plays a team successfully e
 
 ***
 
-# Apendices #
+# Appendices #
 
-## Appendix A - Logistic Regression Models
+## Appendix A - Data Preparation
+
+In the loaddata.R script we load 3 data files "Salaries.csv", Teams.csv and "Batting.csv." For each we limited the data to the years of 2000 through 2016.  All 3 dataframes have factor columns that were impacted by the filtering of the data. This was corrected using the `droplevels()` function. We then summed the Salaries data by YearID and TeamID and added that as the 'team_salaries' column. We performed the same for the Batting data and added that as the 'team_batting' column.
+
+Next we added calculated columns: 
+
+- `TB` - Total bases
+- `SLG` - Slugging percentage
+- `OBP` - On-base percentage
+- `OPS` - On-base plus slugging percentage
+- `WHIP` - Walks and hits per innings pitched
+- `BABIP` - Batting average for balls in play
+- `RC` - Runs created
+- `uBB` - Unintentional walks
+- `wOBA` - Weighted on-base average
+
+We then wrote the data out to the CSV file "bbproj.csv."
+
+## Appendix B - Logistic Regression Models
 
 ### Backward Search: BIC Model
 
@@ -1298,7 +1316,7 @@ summary(step_aic_model)
 step_aic_diag
 ```
 
-## Appendix B - Logistic Regression Diagnostic Functions
+## Appendix C - Logistic Regression Diagnostic Functions
 
 ### Cross-Validation Misclassification Rate Function {#cross_validiate}
 
@@ -1309,21 +1327,3 @@ step_aic_diag
 
 ```{r ref.label = "classify_and_diagnose", eval = FALSE}
 ```
-
-## Appendix B - Data Preparation
-
-In the loaddata.R script we load 3 data files "Salaries.csv", Teams.csv and "Batting.csv." For each we limited the data to the years of 2000 through 2016.  All 3 dataframes have factor columns that were impacted by the filtering of the data. This was corrected using the `droplevels()` function. We then summed the Salaries data by YearID and TeamID and added that as the 'team_salaries' column. We performed the same for the Batting data and added that as the 'team_batting' column.
-
-Next we added calculated columns: 
-
-- `TB` - Total bases
-- `SLG` - Slugging percentage
-- `OBP` - On-base percentage
-- `OPS` - On-base plus slugging percentage
-- `WHIP` - Walks and hits per innings pitched
-- `BABIP` - Batting average for balls in play
-- `RC` - Runs created
-- `uBB` - Unintentional walks
-- `wOBA` - Weighted on-base average
-
-We then wrote the data out to the CSV file "bbproj.csv."
