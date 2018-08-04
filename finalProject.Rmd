@@ -279,6 +279,8 @@ The team-based variables we examine fall into one of three categories: offensive
 - `PPF` - Three-year park factor for pitchers
 - `WHIP` - Walks and hits per innings pitched
 
+Notes regarding data preparation may be found in Appendix A, and the calculations end explanations of some of the advanced Sabermetrics included in our dataset may be found in Appendix B.
+
 ***
 
 # The Search for Better Multiple Linear Regression Models For Predicting Regular Season Team Wins #
@@ -988,7 +990,7 @@ To predict efficiently, we develop Bayes classifiers based on the models and eva
 
 ### Candidate Logistic Regression Models ###
 
-We will begin our search for a better classifier by setting up an initial logistic regression model contain all of the predictors we would like to evaluate.  Then, we will proceed to eliminate predictors using backwards, forwards, and stepwise AIC and BIC searches.  See Appendix B for a complete evaluation of the remaining model derivations and classifications.  The following will detail the methodology using our best candidate model.
+We will begin our search for a better classifier by setting up an initial logistic regression model contain all of the predictors we would like to evaluate.  Then, we will proceed to eliminate predictors using backwards, forwards, and stepwise AIC and BIC searches.  See Appendix C for a complete evaluation of the remaining model derivations and classifications.  The following will detail the methodology using our best candidate model.
 
 First, we set our scope and generate our initial Generalized Linear Model with only the intercept as the predictor.
 
@@ -1023,7 +1025,7 @@ where the log odds of a team winning their division is dependent upon cumulative
 
 First, we evaluate our model with our training data by examining its 5-fold cross-validation misclassification rate.  We choose this diagnostic over the training misclassification rate to avoid giving preference to larger models.  This will have the added bonus of reducing the probability of overfitting.
 
-Here we develop a simple function to perform our cross validation (see the `cross_validate` function in [Appendix C](#cross_validate)).
+Here we develop a simple function to perform our cross validation (see the `cross_validate` function in [Appendix D](#cross_validate)).
 
 ```{r cross_validate, echo = FALSE}
 cross_validate = function(model, data = bbproj_trn, folds = 5) {
@@ -1038,7 +1040,7 @@ cross_validate = function(model, data = bbproj_trn, folds = 5) {
 
 This specific model performed the best out of the six selected logistic regression models with a 5-fold cross-validation misclassification rate of `r round(aic_cv, 3)`.
 
-Next, we will create a function that will evaluate this model using a confusion matrix of our test data to calculate its sensitivity, specificity, and its misclassification rate (the `classify_and_diagnose` function code can be found in [Appendix C](#classify_and_diagnose)).  We will proceed with a default cutoff value of 0.5.
+Next, we will create a function that will evaluate this model using a confusion matrix of our test data to calculate its sensitivity, specificity, and its misclassification rate (the `classify_and_diagnose` function code can be found in [Appendix D](#classify_and_diagnose)).  We will proceed with a default cutoff value of 0.5.
 
 ```{r classify_and_diagnose, echo = FALSE}
 classify_and_diagnose = function(model, data = bbproj_tst, 
@@ -1206,7 +1208,7 @@ We note that the smaller BIC model is nested within the larger AIC model, so we 
 (forw_likelihood_ratio = anova(forw_bic_model, forw_aic_model, test = "LRT"))
 ```
 
-If we commandeer the MLR thred's value for $\alpha = 0.05$ and compare it to our test's p-value of `r forw_likelihood_ratio[2, "Pr(>Chi)"]`, we would reject the null hypothesis $H_0 : \beta_{HA} = \beta_{DP} = \beta_{GIDP} = 0$ and declare our preference for the larger forward-search AIC model.
+If we commandeer the MLR thread's value for $\alpha = 0.05$ and compare it to our test's p-value of `r forw_likelihood_ratio[2, "Pr(>Chi)"]`, we would reject the null hypothesis $H_0 : \beta_{HA} = \beta_{DP} = \beta_{GIDP} = 0$ and declare our preference for the larger forward-search AIC model.
 
 ### And the Winning Logistic Regression Model is... ###
 
@@ -1254,7 +1256,112 @@ Next we added calculated columns:
 
 We then wrote the data out to the CSV file "bbproj.csv."
 
-## Appendix B - Logistic Regression Models
+## Appendix B - Sabermetrics
+
+A decision was made to include a few advanced Sabermetrics in our regressions to determine if there was value in them aggregated at the team level.  Typically, a player's added value, or more precisely, the number of wins a player directly contributes to a team, cannot be established with legacy baseball statistics alone.  Several advanced statistics, called Sabermetrics (loosely named after the *Society for American Baseball Research*, or SABR for short), were developed to correlate a player's on-field statistics to team wins.  Some of them were likely developed using tools described in this course!  
+
+### Total Bases
+
+Total bases `TB` can be derived from our data using the the following relation:
+
+\[
+TB = H + 2B + 2*3B + 3*HR
+\]
+
+where:
+
+- `H` is hits
+- `2B` is doubles
+- `3B` is triples
+- `HR` is home runs
+
+Note that in tallying bases, we multiply triples (`3B`) by 2 and not 3, etc., since one of the bases is already accounted for in the total hits (`H`) tally.  
+
+### Slugging Percentage
+
+Slugging percentage `SLG` is calculated as the team's total bases `TB` divided by total at bats `AB`.
+
+\[
+SLG = \frac{TB}{AB}
+\]
+
+By dividing the total number of bases by at bats, we get a sense of how often a team gets an extra-base hit.  In short, it is a measure of team power.
+
+### On-Base Percentage
+
+We can calculate on-base percentage using the following relation:
+
+\[
+OBP = \frac{AB*(H+BB+HBP)+TB*(AB+BB+SF+HBP)}{AB*(AB+BB+SF+HBP)}
+\]
+
+where:
+
+- `AB` is at bats
+- `BB` is walks
+- `HBP` is hit by pitch
+- `TB` is total bases
+- `SF` is sacrifice flies
+
+On base percentage is essentially the ratio of the number of times a batter reaches base divided by the number plate appearances.  OBP is a measure of the teams batting efficiency.
+
+### OPS
+
+`OPS`, or **o**n-base percentage **p**lus **s**lugging percentage, is calculated exactly how it's described.
+
+\[
+OPS = OBP + SLG
+\]
+
+Adding the on-base percentage and slugging percentage together, we get a good idea of the team's efficiency and power.
+
+### WHIP
+
+`WHIP`, or walks and hits per innings pitched, is a derived pitching statistic used to evaluate a pitcher's ability to throw "clean" innings.
+
+\[
+WHIP = \frac{BB + H}{IP}
+\]
+
+### BABIP
+
+Batting average on balls-in-play is a measure of a hitter's ability to get a hit while keeping the ball in play (i.e. *without* home runs).
+
+\[
+BABIP = \frac{H - HR}{AB - SO - HR + SF}
+\]
+
+### Runs Created
+
+Runs Created, or `RC`, is an attempt to directly measure the number of runs a player creates for his team.
+
+\[
+RC = \frac{TB(H + BB)}{AB + BB}
+\]
+
+[Runs Created](https://www.baseball-reference.com/bullpen/Runs_created) is an advanced statistic created by Bill James in the 1970's.  Interestingly, his statistic aggregated at the team level predicts runs extremely well, despite not having any statistics directly related to runs in the equation.
+
+```{r}
+plot(R ~ RC, data = bbproj_trn,
+     main = "Team Runs vs Aggregated Runs Created",
+     xlab = "Runs Created (RC)",
+     ylab = "Team Runs (R)",
+     col = "darkgray",
+     pch = 20)
+abline(a = 0, b = 1, col = "tomato")
+```
+
+### Weighted On-Base Average
+
+`wOBA`, or weighted on-base average, is similar to on-base percentage `OBP`, giving "extra credit" for extra-base hits, but not as much credit as slugging percentage `SLG`.
+
+\[
+wOBA = \frac{0.69 uBB + 0.72 HBP + 0.89 X1B + 1.27 X2B + 1.62 X3B + 2.1 HR}{AB + BB - IBB + SF + HBP}
+\]
+
+[wOBA](https://www.fangraphs.com/library/offense/woba/) was developed by Tom Tango in 2006.
+
+## Appendix C - Logistic Regression Models
 
 ### Backward Search: BIC Model
 
@@ -1316,7 +1423,7 @@ summary(step_aic_model)
 step_aic_diag
 ```
 
-## Appendix C - Logistic Regression Diagnostic Functions
+## Appendix D - Logistic Regression Diagnostic Functions
 
 ### Cross-Validation Misclassification Rate Function {#cross_validiate}
 
