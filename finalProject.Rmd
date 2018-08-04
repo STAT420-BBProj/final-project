@@ -147,7 +147,7 @@ bbproj_tst$park <- as.factor(bbproj_tst$park)
 
 # Introduction #
 
-Conventional wisdom is that money buys happiness (winning) in Major League Baseball.  However, the advent of "Moneyball" in the early 2000s by the Oakland Athletics, Cleveland Indians, and other teams, has lead to a more analytical approach to determining the make-up of Major League rosters.  
+Conventional wisdom is that money buys happiness (winning) in Major League Baseball.  However, the advent of "Moneyball" in the early 2000s by the Oakland Athletics, Cleveland Indians, and other teams has lead to a more analytical approach to determining the make-up of Major League rosters.  
 
 As it turns out, money is not the magic elixir when it comes to assembling a winning Major League Baseball (MLB) team.  The following plot shows that salary does not highly correlate with a winning record.  This is substantiated by the companion single linear regression model and summary statistics that show that salary, while significant, only has a marginal impact on wins by an MLB team. The adjusted *$R^2$* from the simple linear regression -- using training data from 2000 through 2013 -- is low.  Furthermore, the *average percent error* that compares actual wins versus predicted wins from the the test data (2014 through 2016) is high.
 
@@ -223,7 +223,7 @@ The team-based variables we examine fall into one of three categories: offensive
 
 - `yearID` - Year
 - `franchID` - Franchise, or team name
-- `W` - **Wins (multiple linear regression response variable)**
+- `W` - **Wins (the multiple linear regression response variable)**
 - `DivWin` - **Division winner (Y or N factor- Logistic linear regression response variable)**
 - `WCWin` - Wild Card winner (Y or N factor)
 - `LgWin` - League champion (Y or N factor)
@@ -287,7 +287,7 @@ Notes regarding data preparation may be found in Appendix A, and the calculation
 
 ## Methodology ##
 
-The goal of this thread is to find a Multiple Linear Regression (MLR) model that is simple enough to explain the relationship between the response variable (regular season wins) and the predictors.  In essence, we are interested a reasonably small MLR model that is easy to interpret.  Equally important is the need for the model to predict well against the test data set from the 2014, 2015 and 2016 MLB regular seasons.  This means we have to sacrifice a certain degree of model simplicity.  In short, we are trying to find a model that will allow us to "have our cake and eat it too".
+The goal of this thread is to find a Multiple Linear Regression (MLR) model that is simple enough to explain the relationship between the response variable (regular season wins) and the predictors.  In essence, we are interested in a reasonably small MLR model that is easy to interpret.  Equally important is the need for the model to predict well against the test data set from the 2014, 2015 and 2016 MLB regular seasons.  This means we have to sacrifice a certain degree of model simplicity.  In short, we are trying to find a model that will allow us to "have our cake and eat it too".
 
 The approach we take is to employ all three search procedures -- *Backward*, *Forward* and *Stepwise* -- against the *Akaike Information Criterion* (AIC) and the *Bayesian Information Criterion* (BIC) quality criterion in order to find the model that best meets the goals of this thread.
 
@@ -312,12 +312,12 @@ will do a good job predicting the response variable (in this case, regular seaso
 - Calculation of the Variance Inflation Factor (VIF) for each of the estimated predictor coefficients ($\hat{\beta}_j$).  A VIF score greater than 5 indicates that a given predictor is highly collinear.
 - A check to make sure that the each estimated predictor coefficient ($\hat{\beta}_j$) is likely significant by rejecting the null hypothesis $H_0: B_j = 0$.  We fail to reject $H_0: B_j = 0$ when $\hat{\beta}_j$ has a *p_value* greater than *$\alpha = 0.05$*.
 
-If a model passes all six of these diagnostic tests then it is considered worthy of being evaluated against the test dataset.  From a nomenclature perspective, each model that passes this hurdle is called *candidate* model.  If a model does not pass all six of these diagnostic tests we refit the model after removing a single predictor.  We then perform the same six diagnostic tests. We repeat this cycle until a model is produced that passes all six of the diagnostic tests. 
+If a model passes all six of these diagnostic tests, it is considered worthy of being evaluated against the test dataset.  From a nomenclature perspective, each model that passes this hurdle is called a *candidate* model.  If a model does not pass all six of these diagnostic tests, we refit the model after removing a single predictor.  We then perform the same six diagnostic tests. We repeat this cycle until a model is produced that passes all six of the diagnostic tests. 
 
 Once *candidate* models are identified, we assess their ability to predict regular season team wins against the test dataset.  The *candidate* model with the lowest 
 *Average Percent Error* and the lowest *Test RMSE* is declared the winner.
 
-Please note that the response variable is designated as `W` in models that are described below.
+Please note that the response variable is designated as **`W`** in models that are described below.
 
 ### The Six Initial Multiple Linear Regression Models ###
 
@@ -385,7 +385,7 @@ aic_forward_model <- step(step_search_start_model, scope = scope, trace = 0)
 summary(aic_forward_model)
 ```
 
-### Identifying Which of the Six Initial Models Make The Cut as Candidate Models ###
+### Identifying which of the Six Initial Models make the Cut as Candidate Models ###
 
 #### Evaluation of the Backwards Search: BIC Model ####
 ```{r}
@@ -447,7 +447,7 @@ indices_to_drop <- findCorrelation(cor(bbproj_trn[,c(bic_model_high_vif_cols)]),
 (vars_to_drop <- bic_model_high_vif_cols[indices_to_drop])
 ```
 
-##### A Better And Smaller Backwards Search: BIC Model #####
+##### A Better and Smaller Backwards Search: BIC Model #####
 
 ```{r}
 smaller_bic_model <- lm(W ~ AB + BB + SO + SF + RA + CG + SV + IPouts + BBA + 
@@ -521,7 +521,7 @@ indices_to_drop <- findCorrelation(cor(bbproj_trn[,c(aic_model_high_vif_cols)]),
 (vars_to_drop <- aic_model_high_vif_cols[indices_to_drop])
 ```
 
-##### A Better And Smaller Backwards Search: AIC Model #####
+##### A Better and Smaller Backwards Search: AIC Model #####
 
 ```{r}
 smaller_aic_model <-  lm(formula = W ~  HR + BB + SO + ER + CG + SHO + SV + 
@@ -586,7 +586,7 @@ vif_step_bic_model[which(vif_step_bic_model > 5)]
 
 #### Refining the Step Search: BIC Model Due to High Variance Inflation Factors ####
 
-##### A Better And Smaller Step Search: BIC Model #####
+##### A Better and Smaller Step Search: BIC Model #####
 
 ```{r}
 smaller_step_bic_model <- lm(formula = W ~ SV + R + RA + SHO + CG + X3B + 
@@ -651,7 +651,7 @@ vif_step_aic_model[which(vif_step_aic_model > 5)]
 
 #### Refining the Step Search: AIC Model Due to High Variance Inflation Factors ####
 
-##### A Better And Smaller Step Search: AIC Model #####
+##### A Better and Smaller Step Search: AIC Model #####
 
 ```{r}
 smaller_step_aic_model <- lm(formula = W ~ SV + R + SHO + CG + X3B + IPouts + 
@@ -719,7 +719,7 @@ indices_to_drop <- findCorrelation(cor(bbproj_trn[,c(high_vif_cols)]),
 (vars_to_drop <- high_vif_cols[indices_to_drop])
 ```
 
-##### A Better And Smaller Forward Search: BIC Model #####
+##### A Better and Smaller Forward Search: BIC Model #####
 
 ```{r}
 terms = attr(bic_forward_model$terms, "term.labels")
@@ -792,7 +792,7 @@ vars_to_drop <- high_vif_cols[indices_to_drop]
 vars_to_drop
 ```
 
-##### A Better And Smaller Forward Search: AIC Model #####
+##### A Better and Smaller Forward Search: AIC Model #####
 
 ```{r}
 terms = attr(aic_forward_model$terms, "term.labels")
@@ -811,7 +811,7 @@ model_diagnostics(smaller_aic_forward_model)
 
 The Smaller Step Search: AIC model passes all six of the diagnostic tests.  It is deemed as a *candidate* model for the next phase: evaluation of the model's predictive capability against the test dataset. 
 
-### Validate The Candidate Model Predictive Effectiveness Using Test Data  ###
+### Validate the Candidate Model Predictive Effectiveness using Test Data  ###
 
 We now move forward with five *candidate* models and predict MLB regular season team wins with our test dataset from the 2014, 2015 and 2016 MLB regular seasons.  (There are a total of 90 observations in the test dataset -- one observation for each team for 2014, 2015 and 2016.)
 
@@ -902,7 +902,7 @@ plot_predicted_wins_versus_actual_wins("Smaller Forward Search AIC Model",
 
 ### And the Winning Linear Regression Model is... ###
 
-While all models do a good job predicting the number of regular season wins by a MLB team, the **Smaller Step Search: BIC Model** produces the best results against the test dataset.  This model has the lowest *Average Percent Error* score and *Test RMSE* score basis the test dataset.  This model also generalizes the best against unseen observations.  This means there is a high likelihood this model will perform well against test data for the 2017 and 2018 MLB seasons.  This model also contains the second smallest number of predictors; and it also contains *Salary* as one of the predictors.  This means it is easy to explain the relationship between the response variable `W` and it predictors.  The fact that *Salary* is included as a predictor supports the original premise that *Salary*, while not a dominant predictor, is a marginally significant predictor of regular season MLB team wins.
+While all models do a good job predicting the number of regular season wins by an MLB team, the **Smaller Step Search: BIC Model** produces the best results against the test dataset.  This model has the lowest *Average Percent Error* score and the lowest *Test RMSE* score for predictions with the test dataset.  This model also generalizes the best predictions against unseen observations.  This means there is a high likelihood this model will perform well against test data for the 2017 and 2018 MLB seasons.  The model also contains the second smallest number of predictors and also contains *Salary* as one of the predictors.  This means it is easy to explain the relationship between the response variable **`W`** and it predictors.  The fact that *Salary* is included as a predictor supports the original premise that *Salary*, while not a dominant predictor, is a marginally significant predictor of regular season MLB team wins.
 
 The following table summarizes the key evaluation factors used to choose the best model from the five candidates.
 
@@ -942,9 +942,9 @@ The winning model -- *Smaller Step Search: BIC* -- adds validity to the axiom th
 - Holding all other predictors constant, each additional *Complete Game* increases the average number of wins by 0.142.
 - Holding all other predictors constant, each additional run given up by a pitcher (*Runs Against*) reduces the average number of wins by 0.7.
 
-It is moderately surprising that offense related predictors do not dominate the model. (One of the authors of this study is a die-hard New York Yankees fan.  The New York Yankees are well known for slightly above average pitching but dominant offense.  The Yankees have 27 World Championships to date.  That said, the last championship occurred nine years ago.  So maybe there is more to good pitching that meets the eye.)  The one offense related predictor that moves the needle is *Runs*.  Holding all other predictors constant, an increase in 1 run per game increases the average number of wins by 0.10.
+It is moderately surprising that offense-related predictors do not dominate the model. (One of the authors of this study is a die-hard New York Yankees fan.  The New York Yankees are well known for slightly above average pitching but dominant offense.  The Yankees have 27 World Championships to date.  That said, the last championship occurred nine years ago.  So maybe there is more to good pitching than meets the eye.)  The one offense-related predictor that moves the needle is *Runs*.  Holding all other predictors constant, an increase in 1 run per game increases the average number of wins by 0.10.
 
-The most exciting play in baseball, the *Triple*, is negatively correlated with wins.  Holding all other predictors constant, an increase of 1 *Triple* reduces the average number of wins by 0.5.  This is a real "head-scratcher".
+The most exciting play in baseball, the *Triple*, is negatively correlated with wins.  Holding all other predictors constant, an increase of 1 *Triple* reduces the average number of wins by 0.5.  This is a real "head-scratcher."
 
 ***
 
@@ -952,7 +952,7 @@ The most exciting play in baseball, the *Triple*, is negatively correlated with 
 
 ## Salary as a Predictor for Division Winners ##
 
-For this second thread, let's turn our attention to logistic regression and our ability to classify and predict division winners using our team predictor set.  First, let's see how well salary alone can predict pennants.
+For this second thread, we turn our attention to logistic regression and our ability to classify and predict division winners using our team predictor set.  First, we see how well *Salary* alone can predict pennants.
 
 ```{r}
 salary_only_model <- glm(DivWin ~ salary, data = bbproj_trn, family = binomial)
@@ -970,7 +970,7 @@ curve(predict(salary_only_model, data.frame(salary = x), type = "response"),
       lwd = 2)
 ```
 
-Graphically, a team's payroll seems to be moderately influential in predicting their chances of taking home a division crown.  Indeed, our Wald test for `salary` alone yields a p-value of `r salary_only_summary$coefficients["salary", "Pr(>|z|)"]`, allowing us to reject the null hypothesis ($H_0 : \beta_{salary} = 0$) for any reasonable value for $\alpha$.  So what happens when we look at our salary model's test misclassification rate?
+Graphically, a team's payroll seems to be moderately influential in predicting their chances of taking home a division crown.  Indeed, our Wald test for *Salary* alone yields a p-value of `r salary_only_summary$coefficients["salary", "Pr(>|z|)"]`, allowing us to reject the null hypothesis ($H_0 : \beta_{salary} = 0$) for any reasonable value for $\alpha$.  So what happens when we look at our salary model's test misclassification rate?
 
 ```{r}
 salary_prediction <- ifelse(predict(salary_only_model,
@@ -980,11 +980,11 @@ salary_prediction <- ifelse(predict(salary_only_model,
 (salary_misclass = mean(salary_prediction != bbproj_tst$DivWin))
 ```
 
-First, let's examine prevalence of division winners.  We see that `r prevalence[2] * 100`% of the teams were division winners, which makes sense, since there are 6 divisions and 30 MLB teams, therefore you will only have 6 division winners per year.  Our salary model has a misclassification rate of `r round(salary_misclass, 3)`, which is worse than our prevalence. We would have a better misclassification rate if we simply stated that there are no division winners! We can certainly do better than this.
+First, we examine prevalence of division winners.  We see that `r prevalence[2] * 100`% of the teams were division winners, which makes sense since there are 6 divisions and 30 MLB teams; therefore, you will only have 6 division winners per year.  Our salary model has a misclassification rate of `r round(salary_misclass, 3)`, which is worse than our prevalence. We would have a better misclassification rate if we simply stated that there are no division winners! We can certainly do better than this.
 
 ## Methodology ##
 
-Similar to the MLR section, the ultimate goal of this thread is to find a logistic regression model that predicts well and is easily interpretable.  To facilitate interpretability, we utilize the `step` function to capture significant predictors using both AIC and BIC criteria, searching "forward", "backward", and "stepwise".  We strive to minimize the number of predictors while maximizing the model's predictive capabilities.
+Similar to the MLR section, the ultimate goal of this thread is to find a logistic regression model that predicts well and is easily interpretable.  To facilitate interpretability, we utilize the **`step`** function to capture significant predictors using both AIC and BIC criteria, searching "forward", "backward", and "stepwise".  We strive to minimize the number of predictors while maximizing the model's predictive capabilities.
 
 To predict efficiently, we develop Bayes classifiers based on the models and evaluate them by calculating their sensitivity, specificity, and misclassification rate using our test dataset from the 2014, 2015, and 2016 MLB seasons.  Finally, we cross validate the misclassifications and choose a model that has the lowest 5-fold cross validation misclassification rate while keeping the other diagnostics in mind.
 
@@ -1005,7 +1005,7 @@ n <- length(resid(start_model))
 
 #### Forward Search: AIC Model ####
 
-Next, we begin to determine which predictors are influential by using the `step` function.  In this case, we are using a forward-search algorithm using AIC criteria.
+Next, we begin to determine which predictors are influential by using the **`step`** function.  In this case, we are using a forward-search algorithm using AIC criteria.
 
 ```{r warning=FALSE}
 aic_model <- step(start_model, direction = "forward", scope = scope, 
@@ -1013,7 +1013,7 @@ aic_model <- step(start_model, direction = "forward", scope = scope,
 summary(aic_model)
 ```
 
-Our forward search using AIC yields the following logistic model
+Our forward-search using AIC yields the following logistic model
 
 \[
 \log \bigg(\frac{P[DivWin = 1]}{1 - P[DivWin = 1]} \bigg) = \beta_0 + \beta_W W + \beta_{X2B} X2B + \beta_{HA} HA + \beta_{DP} DP + \beta_{GIDP} GIDP
@@ -1025,7 +1025,7 @@ where the log odds of a team winning their division is dependent upon cumulative
 
 First, we evaluate our model with our training data by examining its 5-fold cross-validation misclassification rate.  We choose this diagnostic over the training misclassification rate to avoid giving preference to larger models.  This will have the added bonus of reducing the probability of overfitting.
 
-Here we develop a simple function to perform our cross validation (see the `cross_validate` function in [Appendix D](#cross_validate)).
+Here we develop a simple function to perform our cross validation (see the **`cross_validate`** function in [Appendix D](#cross_validate)).
 
 ```{r cross_validate, echo = FALSE}
 cross_validate = function(model, data = bbproj_trn, folds = 5) {
@@ -1040,7 +1040,7 @@ cross_validate = function(model, data = bbproj_trn, folds = 5) {
 
 This specific model performed the best out of the six selected logistic regression models with a 5-fold cross-validation misclassification rate of `r round(aic_cv, 3)`.
 
-Next, we will create a function that will evaluate this model using a confusion matrix of our test data to calculate its sensitivity, specificity, and its misclassification rate (the `classify_and_diagnose` function code can be found in [Appendix D](#classify_and_diagnose)).  We will proceed with a default cutoff value of 0.5.
+Next, we will create a function that will evaluate this model using a confusion matrix of our test data to calculate its sensitivity, specificity, and its misclassification rate (the **`classify_and_diagnose`** function code can be found in [Appendix D](#classify_and_diagnose)).  We will proceed with a default cutoff value of 0.5.
 
 ```{r classify_and_diagnose, echo = FALSE}
 classify_and_diagnose = function(model, data = bbproj_tst, 
@@ -1068,7 +1068,7 @@ classify_and_diagnose = function(model, data = bbproj_tst,
 (aic_diag <- classify_and_diagnose(aic_model))
 ```
 
-Here, we beat the salary-only model (along with the prevalence) with a test misclassification rate of `r round(aic_diag$misclassification, 3)`.  Our specificity looks great for this model at `r round(aic_diag$specificity, 3)`.  Our `r aic_diag$confusion_matrix[1, 2]` false negatives could come down, however, with an adjustment to our cutoff value, with the trade-off of a lower specificity and worse misclassification rate (that exercise is out of scope for this project).
+Here, we beat the salary-only model (along with the prevalence) with a test misclassification rate of `r round(aic_diag$misclassification, 3)`.  Our specificity looks great for this model at `r round(aic_diag$specificity, 3)`.  Our `r aic_diag$confusion_matrix[1, 2]` false negatives could come down by adjusting our cutoff value, but the trade-off would be a lower specificity and a worse misclassification rate (that exercise is out of scope for this project).
 
 ```{r glm_back_bic, warning = FALSE, echo=FALSE}
 formula <- formula(scope)
@@ -1177,7 +1177,7 @@ kable(logistic_model_results, col.names = logistic_col_names,
       caption = "Logistic Regression Model Result Summary")
 ```
 
-Based on our cross-validated misclassification rates, we choose the *Forward AIC* model (note that the *Stepwise AIC* model is equivalent)
+Based on our cross-validated misclassification rates, we choose the *Forward AIC* model (note that the *Stepwise AIC* model is equivalent).
 
 \[
 \log \bigg(\frac{P[DivWin = 1]}{1 - P[DivWin = 1]} \bigg) = \beta_0 + \beta_W W + \beta_{X2B} X2B + \beta_{HA} HA + \beta_{DP} DP + \beta_{GIDP} GIDP
@@ -1228,11 +1228,11 @@ We choose the forward-search AIC model despite having twice as many predictors a
 forw_aic_diag$confusion_matrix
 ```
 
-The interpretation of our winning model tells us that a team's win total `W`, double tally `X2B`, hits against the team's pitchers `HA`, turned double plays `DB`, and the number of times the team has grounded into double plays `GIDP` all have have a significant relationship with that team's probability of winning their division.  The relationship with `W` is fairly self evident and quite boring given the definition of a division winner - the team  with the most wins in their division at the end of the season is declared the division champ.  Indeed, this is the most significant $\beta$ parameter by far given the remaining coefficients, with a Wald test p-value of `r summary(forw_aic_model)$coefficients["W", "Pr(>|z|)"]`.
+The interpretation of our winning model tells us that a team's win total (**`W`**), double tally (**`X2B`**), hits against the team's pitchers (**`HA`**), turned double plays (**`DB`**), and the number of times the team has grounded into double plays (**`GIDP`**) all have have a significant relationship with that team's probability of winning their division.  The relationship with (**`W`**) is fairly self evident and quite boring given the definition of a division winner; the team with the most wins in its division at the end of the season is declared the division champ.  Indeed, this is the most significant $\beta$ parameter by far given the remaining coefficients, with a Wald test p-value of `r summary(forw_aic_model)$coefficients["W", "Pr(>|z|)"]`.
 
-Interestingly, the remaining predictors all have relationships with `DivWin` inverse to what we would expect. For instance, there is a somewhat-significant negative relationship with doubles, given the remaining predictors.  That is, given two teams with the same number of wins, hits against, double plays, and GIDPs, the team with the *fewer* number of doubles would have a higher probability of winning their division.  What does this mean?  Well, one explanation could be, given all else equal, the game favors teams proficient at small ball - being able to manufacture runs with walks, bunts, steals, and sacrifice flies - rather than a team's capacity of lacing ropes to the alley in left-center.
+Interestingly, the remaining predictors all have relationships with **`DivWin`** inverse to what we would expect. For instance, there is a somewhat-significant negative relationship with doubles, given the remaining predictors.  That is, given two teams with the same number of wins, hits against, double plays, and GIDPs, the team with the *fewer* number of doubles would have a higher probability of winning its division.  What does this mean?  Well, one explanation could be, given all else is equal, the game favors teams proficient at small ball - being able to manufacture runs with walks, bunts, steals, and sacrifice flies - rather than a team's capacity of lacing ropes to the alley in left-center.
 
-Similarly, we would expect that the number of double plays a team successfully executes wouldn't hinder their odds at winning a division.  But holding the remaining predictors constant, that's exactly what this model says.  So despite the small number of predictors for this model - while it indeed predicts well - it seems it is still tricky to interpret.
+Similarly, we would expect that the number of double plays a team successfully executes wouldn't hinder its odds at winning a division.  But holding the remaining predictors constant, that's exactly what this model says.  So despite the small number of predictors for this model - while it indeed predicts well - it seems it is still tricky to interpret.
 
 ***
 
@@ -1240,7 +1240,7 @@ Similarly, we would expect that the number of double plays a team successfully e
 
 ## Appendix A - Data Preparation
 
-In the loaddata.R script we load 3 data files "Salaries.csv", Teams.csv and "Batting.csv." For each we limited the data to the years of 2000 through 2016.  All 3 dataframes have factor columns that were impacted by the filtering of the data. This was corrected using the `droplevels()` function. We then summed the Salaries data by YearID and TeamID and added that as the 'team_salaries' column. We performed the same for the Batting data and added that as the 'team_batting' column.
+In the loaddata.R script we load 3 data files "Salaries.csv", Teams.csv and "Batting.csv."  For each, we limited the data to the years of 2000 through 2016.  All 3 dataframes have factor columns that were impacted by the filtering of the data.  This was corrected using the **`droplevels`** function.  We then summed the Salaries data by **`YearID`** and **`TeamID`** and added that as the **`team_salaries`** column.  We performed the same for the Batting data and added that as the **`team_batting`** column.
 
 Next we added calculated columns: 
 
@@ -1258,11 +1258,11 @@ We then wrote the data out to the CSV file "bbproj.csv."
 
 ## Appendix B - Sabermetrics
 
-A decision was made to include a few advanced Sabermetrics in our regressions to determine if there was value in them aggregated at the team level.  Typically, a player's added value, or more precisely, the number of wins a player directly contributes to a team, cannot be established with legacy baseball statistics alone.  Several advanced statistics, called Sabermetrics (loosely named after the *Society for American Baseball Research*, or SABR for short), were developed to correlate a player's on-field statistics to team wins.  Some of them were likely developed using tools described in this course!  
+A decision was made to include a few advanced Sabermetrics in our regressions to determine if there was value in them aggregated at the team level.  Typically, a player's added value, or more precisely, the number of wins a player directly contributes to a team, cannot be established with legacy baseball statistics alone.  Several advanced statistics, called Sabermetrics (loosely named after the *Society for American Baseball Research*, or SABR for short), were developed to correlate a player's on-field statistics to team wins.  Some of them were likely developed using tools described in this course.  
 
 ### Total Bases
 
-Total bases `TB` can be derived from our data using the the following relation:
+Total bases (**`TB`**) can be derived from our data using the the following relation:
 
 \[
 TB = H + 2B + 2*3B + 3*HR
@@ -1275,11 +1275,11 @@ where:
 - `3B` is triples
 - `HR` is home runs
 
-Note that in tallying bases, we multiply triples (`3B`) by 2 and not 3, etc., since one of the bases is already accounted for in the total hits (`H`) tally.  
+Note that in tallying bases, we multiply triples (**`3B`**) by 2 and not 3, etc., since one of the bases is already accounted for in the total hits (**`H`**) tally.  
 
 ### Slugging Percentage
 
-Slugging percentage `SLG` is calculated as the team's total bases `TB` divided by total at bats `AB`.
+Slugging percentage (**`SLG`**) is calculated as the team's total bases (**`TB`**) divided by total at bats (**`AB`**).
 
 \[
 SLG = \frac{TB}{AB}
@@ -1303,11 +1303,10 @@ where:
 - `TB` is total bases
 - `SF` is sacrifice flies
 
-On base percentage is essentially the ratio of the number of times a batter reaches base divided by the number plate appearances.  OBP is a measure of the teams batting efficiency.
 
-### OPS
+### OPS - On-base Plus Slugging
 
-`OPS`, or **o**n-base percentage **p**lus **s**lugging percentage, is calculated exactly how it's described.
+On base percentage (**`OBP`**) is essentially the ratio of the number of times a batter reaches base divided by the number plate appearances. It is a measure of the teams batting efficiency. Slugging percentage (**`SLG`**) is average number of bases that a player gets every time they come to bat, excluding walks. 
 
 \[
 OPS = OBP + SLG
@@ -1315,25 +1314,25 @@ OPS = OBP + SLG
 
 Adding the on-base percentage and slugging percentage together, we get a good idea of the team's efficiency and power.
 
-### WHIP
+### WHIP - Walks plus Hits per Innings Pitched
 
-`WHIP`, or walks and hits per innings pitched, is a derived pitching statistic used to evaluate a pitcher's ability to throw "clean" innings.
+Is a derived pitching statistic used to evaluate a pitcher's ability to throw "clean" innings.
 
 \[
 WHIP = \frac{BB + H}{IP}
 \]
 
-### BABIP
+### BABIP - Batting Average on Balls In Play
 
-Batting average on balls-in-play is a measure of a hitter's ability to get a hit while keeping the ball in play (i.e. *without* home runs).
+Is a measure of a hitter's ability to get a hit while keeping the ball in play (i.e. *without* home runs).
 
 \[
 BABIP = \frac{H - HR}{AB - SO - HR + SF}
 \]
 
-### Runs Created
+### RC - Runs Created
 
-Runs Created, or `RC`, is an attempt to directly measure the number of runs a player creates for his team.
+Is an attempt to directly measure the number of runs a player creates for his team.
 
 \[
 RC = \frac{TB(H + BB)}{AB + BB}
@@ -1351,9 +1350,9 @@ plot(R ~ RC, data = bbproj_trn,
 abline(a = 0, b = 1, col = "tomato")
 ```
 
-### Weighted On-Base Average
+### wOBA - Weighted On-Base Average
 
-`wOBA`, or weighted on-base average, is similar to on-base percentage `OBP`, giving "extra credit" for extra-base hits, but not as much credit as slugging percentage `SLG`.
+Is similar to on-base percentage (**`OBP`**), giving "extra credit" for extra-base hits, but not as much credit as slugging percentage (**`SLG`**).
 
 \[
 wOBA = \frac{0.69 uBB + 0.72 HBP + 0.89 X1B + 1.27 X2B + 1.62 X3B + 2.1 HR}{AB + BB - IBB + SF + HBP}
