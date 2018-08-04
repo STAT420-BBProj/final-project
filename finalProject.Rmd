@@ -1,6 +1,6 @@
 ---
 title: "Final Project"
-author: "Team 27 - Mark Berman, Joel Kopp, and Richard Wheeler"
+author: "Team 27 - Mark Berman (markcb2), Joel Kopp (joelk2), and Richard Wheeler (rw6)"
 date: "7/23/2018"
 output: 
   html_document:
@@ -968,27 +968,29 @@ curve(predict(salary_only_model, data.frame(salary = x), type = "response"),
       lwd = 2)
 ```
 
-Graphically, a team's payroll seems to be moderately influential in predicting their chances of taking home a division crown.  Indeed, our Wald test for `salary` alone yields a p-value of `r salary_only_summary$coefficients["salary", "Pr(>|z|)"]`, allowing us to reject the null hypothesis ($H_0 : \beta_{salary} = 0$) for any reasonable value for $\alpha$.  So what happens when we look at our salary model's misclassification rate?
+Graphically, a team's payroll seems to be moderately influential in predicting their chances of taking home a division crown.  Indeed, our Wald test for `salary` alone yields a p-value of `r salary_only_summary$coefficients["salary", "Pr(>|z|)"]`, allowing us to reject the null hypothesis ($H_0 : \beta_{salary} = 0$) for any reasonable value for $\alpha$.  So what happens when we look at our salary model's test misclassification rate?
 
 ```{r}
-salary_prediction <- ifelse(predict(salary_only_model, 
-                                    bbproj_tst, 
+salary_prediction <- ifelse(predict(salary_only_model,
+                                    bbproj_tst,
                                     type = "response") > 0.5, "Y", "N")
 (prevalence = table(bbproj_tst$DivWin) / nrow(bbproj_tst))
 (salary_misclass = mean(salary_prediction != bbproj_tst$DivWin))
 ```
 
-First, let's examine prevalence of division winners.  We see that `r prevalence[2] * 100`% of the teams were division winners, which makes sense, since there are 6 divisions and 30 MLB teams, therefore you will only have 6 division winners per year.  Our salary model has a misclassification rate of `r round(salary_misclass, 3)`, which is worse than our prevalence.  We would have a better misclassification rate if we simply stated that there are no division winners!  We can certainly do better than this.
+First, let's examine prevalence of division winners.  We see that `r prevalence[2] * 100`% of the teams were division winners, which makes sense, since there are 6 divisions and 30 MLB teams, therefore you will only have 6 division winners per year.  Our salary model has a misclassification rate of `r round(salary_misclass, 3)`, which is worse than our prevalence. We would have a better misclassification rate if we simply stated that there are no division winners! We can certainly do better than this.
 
 ## Methodology ##
 
 Similar to the MLR section, the ultimate goal of this thread is to find a logisitic regression model that predicts well and is easily interpretible.  To facilitate interpretibility, we utilize the `step` function to capture significant predictors using both AIC and BIC criteria, searching "forward", "backward", and "stepwise".  We strive to minimize the number of predictors while maximizing the model's predictive capabilities.
 
-To predict efficiently, we develop Bayes classifiers based on the models and evaluate them by calculating their sensitivity, specificity, and misclassification rate using our test dataset from the 2014, 2015, and 2016 MLB seasons.  Further, we optimize the classifiers by choosing a cutoff value that minimizes the misclassification rate while maintaining a small delta between sensitivity and specificity.
+To predict efficiently, we develop Bayes classifiers based on the models and evaluate them by calculating their sensitivity, specificity, and misclassification rate using our test dataset from the 2014, 2015, and 2016 MLB seasons.  Finally, we cross validate the misclassifications and choose a model that has the lowest 5-fold cross validation misclassification rate while keeping the other diagnostics in mind.
 
 ### Candidate Logistic Regression Models ###
 
 We will begin our search for a better classifier by setting up an initial logistic regression model contain all of the predictors we would like to evaluate.  Then, we will proceed to eliminate predictors using backwards, forwards, and stepwise AIC and BIC searches.  See Appendix A for a complete evaluation of the remaining model derivations and classifications.  The following will detail the methodology using our best candidate model.
+
+First, we set our scope and generate our initial Generalized Linear Model with only the intercept as the predictor.
 
 ```{r warning=FALSE}
 scope <- DivWin ~ W + R + AB + H + X2B + X3B + HR + BB + SO + SB + CS + HBP + 
@@ -999,25 +1001,44 @@ start_model <- glm(DivWin ~ 1, data = bbproj_trn, family = binomial)
 n <- length(resid(start_model))
 ```
 
-#### Forward Search: BIC Model ####
+#### Forward Search: AIC Model ####
+
+Next, we begin to determine which predictors are influential by using the `step` function.  In this case, we are using a forward-search algorithm using AIC criteria.
 
 ```{r warning=FALSE}
-bic_model <- step(start_model, direction = "forward", scope = scope, 
-                  k = log(n), trace = 0)
-summary(bic_model)
+aic_model <- step(start_model, direction = "forward", scope = scope, 
+                  trace = 0)
+summary(aic_model)
 ```
 
-Our forward search using BIC yields the following logistic model
+Our forward search using AIC yields the following logistic model
 
 \[
-\log \bigg(\frac{P[DivWin = 1]}{1 - P[DivWin = 1]} \bigg) = \beta_0 + \beta_W W + \beta_{X2B} X2B
+\log \bigg(\frac{P[DivWin = 1]}{1 - P[DivWin = 1]} \bigg) = \beta_0 + \beta_W W + \beta_{X2B} X2B + \beta_{HA} HA + \beta_{DP} DP + \beta_{GIDP} GIDP
 \]
 
-where the log odds of a team winning their division is dependent upon wins and doubles.
+where the log odds of a team winning their division is dependent upon cumulative wins, doubles, hits against, turned double plays, and double plays grounded into.
 
-##### Diagnostics: BIC Model ####
+##### Diagnostics #####
 
-Next, we will create a function that will evaluate this model using a confusion matrix and calculate its sensitivity, specificity, and its misclassification rate (the `classify_and_diagnose` function code can be found in [Appendix A](#classify_and_diagnose)).  Then we will start by examining a default cutoff value of 0.5.
+First, we evaluate our model with our training data by examining its 5-fold cross-validation misclassification rate.  We choose this diagnostic over the training misclassification rate to avoid giving preference to larger models.  This will have the added bonus of reducing the probability of overfitting.
+
+Here we develop a simple function to perform our cross validiation (see the `cross_validate` function in [Appendix B](#cross_validate)).
+
+```{r cross_validate, echo = FALSE}
+cross_validate = function(model, data = bbproj_trn, folds = 5) {
+  set.seed(42)
+  boot::cv.glm(data, model, K = folds)$delta[1]
+}
+```
+
+```{r}
+(aic_cv <- cross_validate(aic_model))
+```
+
+This specific model performed the best out of the six selected logistic regression models with a 5-fold cross-validation misclassification rate of `r round(aic_cv, 3)`.
+
+Next, we will create a function that will evaluate this model using a confusion matrix of our test data to calculate its sensitivity, specificity, and its misclassification rate (the `classify_and_diagnose` function code can be found in [Appendix B](#classify_and_diagnose)).  We will proceed with a default cutoff value of 0.5.
 
 ```{r classify_and_diagnose, echo = FALSE}
 classify_and_diagnose = function(model, data = bbproj_tst, 
@@ -1042,134 +1063,31 @@ classify_and_diagnose = function(model, data = bbproj_tst,
 ```
 
 ```{r}
-(bic_diag <- classify_and_diagnose(bic_model))
+(aic_diag <- classify_and_diagnose(aic_model))
 ```
 
-Here, we beat the salary only model along with the prevalence with a misclassification rate of `r round(bic_diag$misclassification, 3)`.  Our specificity looks great for our forward BIC model at `r round(bic_diag$specificity, 3)`.  Our `r bic_diag$confusion_matrix[1, 2]` false negatives could come down, however, with an adjustment to our cutoff value.
-
-#### Find an Optimal Cutoff ####
-
-Next we will define a function that will loop through a vector of potential cutoffs to isolate one that will produce the smallest misclassification rate with a minimal differential between sensitivity and specificity (see [Appendix A](#opt_logistic_cutoff) for the `opt_logistic_cutoff` function's definition).
-
-```{r opt_logistic_cutoff, echo = FALSE}
-opt_logistic_cutoff = function(model, cut_start = 0.01, cut_end = 0.99, 
-                               data = bbproj_tst, actual = bbproj_tst$DivWin,
-                               pos = "Y", neg = "N", plotit = TRUE) {
-  # Loop through potential cutoffs from cut_start to cut_end to determine a 
-  # cutoff that produces the lowest misclassification rate with the smallest 
-  # delta between sensitivity and specificity
-  cutoffs = seq(cut_start, cut_end, by = 0.01)
-  sens = rep(0, length(cutoffs))
-  spec = rep(0, length(cutoffs))
-  misclass = rep(0, length(cutoffs))
-  delta = rep(0, length(cutoffs))
-  for (i in 1:length(cutoffs)) {
-    diagnostics = classify_and_diagnose(model, 
-                                        data = data, 
-                                        actual = actual,
-                                        pos = pos,
-                                        neg = neg,
-                                        cutoff = cutoffs[i])
-    sens[i] = diagnostics$sensitivity
-    spec[i] = diagnostics$specificity
-    misclass[i] = diagnostics$misclassification
-    delta[i] = abs(diagnostics$sensitivity - diagnostics$specificity)
-  }
-  
-  # Get the indicies of the smallest misclassification rates
-  min_misclass = which(misclass == min(misclass))
-  
-  # Get the smallest delta between sensitivity and specificity at the 
-  # identified misclassification indicies
-  min_delta = min_misclass[which.min(delta[min_misclass])]
-  
-  # Plot sensitivity, specificity, and misclassification if requested
-  if (plotit) {
-    plot(sens ~ cutoffs,
-         xlab = "Cutoff",
-         ylab = "Sensitivity/Specificity",
-         main = "Sensitivity and Specificity at Varied Cutoffs",
-         col = "tomato",
-         type = "b",
-         ylim = c(0, 1),
-         pch = 20)
-    lines(spec ~ cutoffs, 
-          col = "darkslategray4", 
-          type = "b",
-          pch = 20)
-    lines(misclass ~ cutoffs, 
-          col = "darkorange", 
-          type = "b",
-          pch = 20)
-    abline(v = cutoffs[min_delta], lty = 2)
-    legend("topright", c("Sensitivity", 
-                         "Specificity", 
-                         "Misclassification"),
-           col = c("tomato", "darkslategray4", "darkorange"),
-           lwd = 1,
-           pch = 20)
-  }
-  
-  # Return the misclassification, sensitivity, and specificity at the optimal
-  # cutoff value
-  c(cutoff = cutoffs[min_delta],
-    misclass = misclass[min_delta], 
-    sensitivity = sens[min_delta],
-    specificity = spec[min_delta])
-}
-```
-
-```{r}
-(opt_cutoff = opt_logistic_cutoff(bic_model, cut_start = 0.1, cut_end = 0.8))
-classify_and_diagnose(bic_model, cutoff = opt_cutoff["cutoff"])$confusion_matrix
-```
-
-Our routine finds an optimal cutoff value for our forward BIC model of `r opt_cutoff["cutoff"]`.  Our misclassification rate went down with our cutoff adjustment to `r round(opt_cutoff["misclass"], 3)`.  Additionally, our sensitivity went up significantly (`r round(opt_cutoff["sensitivity"], 3)`) and we only had a modest reduction in specificity (`r round(opt_cutoff["specificity"], 3)`).  This model looks to be exceptionally adept at classifying division winners, and `salary` is not even a predictor!
+Here, we beat the salary-only model (along with the prevalence) with a test misclassification rate of `r round(aic_diag$misclassification, 3)`.  Our specificity looks great for this model at `r round(aic_diag$specificity, 3)`.  Our `r aic_diag$confusion_matrix[1, 2]` false negatives could come down, however, with an adjustment to our cutoff value, with the trade-off of a lower specificity and worse misclassification rate (that exercise is out of scope for this project).
 
 ```{r glm_back_bic, warning = FALSE, echo=FALSE}
 formula <- formula(scope)
 back_bic_model <- step(glm(formula, data = bbproj_trn, family = binomial), 
                        direction = "backward", k = log(n), trace = 0)
 back_bic_diag <- classify_and_diagnose(back_bic_model)
-```
-
-```{r glm_opt_back_bic, echo = FALSE}
-opt_back_bic <- opt_logistic_cutoff(back_bic_model, 
-                                    cut_start = 0.1, 
-                                    cut_end = 0.8,
-                                    plotit = FALSE)
-opt_back_bic_diag <- classify_and_diagnose(back_bic_model, 
-                                           cutoff = opt_back_bic["cutoff"])
+back_bic_cv <- cross_validate(back_bic_model)
 ```
 
 ```{r glm_forw_bic, echo = FALSE}
 forw_bic_model <- step(start_model, direction = "forward", scope = scope, 
                        k = log(n), trace = 0)
 forw_bic_diag <- classify_and_diagnose(forw_bic_model)
-```
-
-```{r glm_opt_forw_bic, echo = FALSE}
-opt_forw_bic <- opt_logistic_cutoff(forw_bic_model, 
-                                    cut_start = 0.1, 
-                                    cut_end = 0.8,
-                                    plotit = FALSE)
-opt_forw_bic_diag <- classify_and_diagnose(forw_bic_model, 
-                                           cutoff = opt_forw_bic["cutoff"])
+forw_bic_cv <- cross_validate(forw_bic_model)
 ```
 
 ```{r glm_step_bic, echo = FALSE}
 step_bic_model <- step(start_model, direction = "both", scope = scope, 
                        k = log(n), trace = 0)
 step_bic_diag <- classify_and_diagnose(step_bic_model)
-```
-
-```{r opt_glm_step_bic, echo = FALSE}
-opt_step_bic <- opt_logistic_cutoff(step_bic_model, 
-                                    cut_start = 0.1, 
-                                    cut_end = 0.8,
-                                    plotit = FALSE)
-opt_step_bic_diag <- classify_and_diagnose(step_bic_model, 
-                                           cutoff = opt_step_bic["cutoff"])
+step_bic_cv <- cross_validate(step_bic_model)
 ```
 
 ```{r glm_back_aic, warning = FALSE, echo = FALSE}
@@ -1177,196 +1095,148 @@ formula <- formula(scope)
 back_aic_model <- step(glm(formula, data = bbproj_trn, family = binomial), 
                        direction = "backward", trace = 0)
 back_aic_diag <- classify_and_diagnose(back_aic_model)
-```
-
-```{r opt_glm_back_aic, echo = FALSE}
-opt_back_aic <- opt_logistic_cutoff(back_aic_model, 
-                                    cut_start = 0.1, 
-                                    cut_end = 0.8,
-                                    plotit = FALSE)
-opt_back_aic_diag <- classify_and_diagnose(back_aic_model, 
-                                           cutoff = opt_back_aic["cutoff"])
+back_aic_cv <- cross_validate(back_aic_model)
 ```
 
 ```{r glm_forw_aic, echo = FALSE}
 forw_aic_model <- step(start_model, direction = "forward", 
                        scope = scope, trace = 0)
 forw_aic_diag <- classify_and_diagnose(forw_aic_model)
-```
-
-```{r opt_glm_forw_aic, echo = FALSE}
-opt_forw_aic <- opt_logistic_cutoff(forw_aic_model, 
-                                    cut_start = 0.1, 
-                                    cut_end = 0.8,
-                                    plotit = FALSE)
-opt_forw_aic_diag <- classify_and_diagnose(forw_aic_model, 
-                                           cutoff = opt_forw_aic["cutoff"])
+forw_aic_cv <- cross_validate(forw_aic_model)
 ```
 
 ```{r glm_step_aic, echo = FALSE}
 step_aic_model <- step(start_model, direction = "both", 
                        scope = scope, trace = 0)
 step_aic_diag <- classify_and_diagnose(step_aic_model)
-```
-
-```{r opt_glm_step_aic, echo = FALSE}
-opt_step_aic <- opt_logistic_cutoff(step_aic_model, 
-                                    cut_start = 0.1, 
-                                    cut_end = 0.8,
-                                    plotit = FALSE)
-opt_step_aic_diag <- classify_and_diagnose(step_aic_model, 
-                                           cutoff = opt_step_aic["cutoff"])
+step_aic_cv <- cross_validate(step_aic_model)
 ```
 
 ***
 
 ## Results ##
 
-```{r include=FALSE}
-logistic_results = data.frame(
-  cutoff = c(forw_aic = 0.5,
-             back_aic = 0.5,
-             step_aic = 0.5,
-             forw_bic = 0.5,
-             back_bic = 0.5,
-             step_bic = 0.5,
-             opt_forw_aic = opt_forw_aic["cutoff"],
-             opt_back_aic = opt_back_aic["cutoff"],
-             opt_step_aic = opt_step_aic["cutoff"],
-             opt_forw_bic = opt_forw_bic["cutoff"],
-             opt_back_bic = opt_back_bic["cutoff"],
-             opt_step_bic = opt_step_bic["cutoff"]),
-  misclass = c(forw_aic = forw_aic_diag$misclassification,
-               back_aic = back_aic_diag$misclassification,
-               step_aic = step_aic_diag$misclassification,
-               forw_bic = forw_bic_diag$misclassification,
-               back_bic = back_bic_diag$misclassification,
-               step_bic = step_bic_diag$misclassification,
-               opt_forw_aic = opt_forw_aic_diag$misclassification,
-               opt_back_aic = opt_back_aic_diag$misclassification,
-               opt_step_aic = opt_step_aic_diag$misclassification,
-               opt_forw_bic = opt_forw_bic_diag$misclassification,
-               opt_back_bic = opt_back_bic_diag$misclassification,
-               opt_step_bic = opt_step_bic_diag$misclassification),
-  sensitivity = c(forw_aic = forw_aic_diag$sensitivity,
-                  back_aic = back_aic_diag$sensitivity,
-                  step_aic = step_aic_diag$sensitivity,
-                  forw_bic = forw_bic_diag$sensitivity,
-                  back_bic = back_bic_diag$sensitivity,
-                  step_bic = step_bic_diag$sensitivity,
-                  opt_forw_aic = opt_forw_aic_diag$sensitivity,
-                  opt_back_aic = opt_back_aic_diag$sensitivity,
-                  opt_step_aic = opt_step_aic_diag$sensitivity,
-                  opt_forw_bic = opt_forw_bic_diag$sensitivity,
-                  opt_back_bic = opt_back_bic_diag$sensitivity,
-                  opt_step_bic = opt_step_bic_diag$sensitivity),
-  specificity = c(forw_aic = forw_aic_diag$specificity,
-                  back_aic = back_aic_diag$specificity,
-                  step_aic = step_aic_diag$specificity,
-                  forw_bic = forw_bic_diag$specificity,
-                  back_bic = back_bic_diag$specificity,
-                  step_bic = step_bic_diag$specificity,
-                  opt_forw_aic = opt_forw_aic_diag$specificity,
-                  opt_back_aic = opt_back_aic_diag$specificity,
-                  opt_step_aic = opt_step_aic_diag$specificity,
-                  opt_forw_bic = opt_forw_bic_diag$specificity,
-                  opt_back_bic = opt_back_bic_diag$specificity,
-                  opt_step_bic = opt_step_bic_diag$specificity),
+```{r include = FALSE}
+logistic_model_results = data.frame(
+  cv = c(forw_aic = forw_aic_cv,
+         back_aic = back_aic_cv,
+         step_aic = step_aic_cv,
+         forw_bic = forw_bic_cv,
+         back_bic = back_bic_cv,
+         step_bic = step_bic_cv),
   nparams = c(forw_aic = length(coef(forw_aic_model)),
               back_aic = length(coef(back_aic_model)),
               step_aic = length(coef(step_aic_model)),
               forw_bic = length(coef(forw_bic_model)),
               back_bic = length(coef(back_bic_model)),
-              step_bic = length(coef(step_bic_model)),
-              opt_forw_aic = length(coef(forw_aic_model)),
-              opt_back_aic = length(coef(back_aic_model)),
-              opt_step_aic = length(coef(step_aic_model)),
-              opt_forw_bic = length(coef(forw_bic_model)),
-              opt_back_bic = length(coef(back_bic_model)),
-              opt_step_bic = length(coef(step_bic_model))),
+              step_bic = length(coef(step_bic_model))),
+  sensitivity = c(forw_aic = forw_aic_diag$sensitivity,
+                  back_aic = back_aic_diag$sensitivity,
+                  step_aic = step_aic_diag$sensitivity,
+                  forw_bic = forw_bic_diag$sensitivity,
+                  back_bic = back_bic_diag$sensitivity,
+                  step_bic = step_bic_diag$sensitivity),
+  specificity = c(forw_aic = forw_aic_diag$specificity,
+                  back_aic = back_aic_diag$specificity,
+                  step_aic = step_aic_diag$specificity,
+                  forw_bic = forw_bic_diag$specificity,
+                  back_bic = back_bic_diag$specificity,
+                  step_bic = step_bic_diag$specificity),
   fn = c(forw_aic = forw_aic_diag$confusion_matrix[1, 2],
          back_aic = back_aic_diag$confusion_matrix[1, 2],
          step_aic = step_aic_diag$confusion_matrix[1, 2],
          forw_bic = forw_bic_diag$confusion_matrix[1, 2],
          back_bic = back_bic_diag$confusion_matrix[1, 2],
-         step_bic = step_bic_diag$confusion_matrix[1, 2],
-         opt_forw_aic = opt_forw_aic_diag$confusion_matrix[1, 2],
-         opt_back_aic = opt_back_aic_diag$confusion_matrix[1, 2],
-         opt_step_aic = opt_step_aic_diag$confusion_matrix[1, 2],
-         opt_forw_bic = opt_forw_bic_diag$confusion_matrix[1, 2],
-         opt_back_bic = opt_back_bic_diag$confusion_matrix[1, 2],
-         opt_step_bic = opt_step_bic_diag$confusion_matrix[1, 2]),
+         step_bic = step_bic_diag$confusion_matrix[1, 2]),
   fp = c(forw_aic = forw_aic_diag$confusion_matrix[2, 1],
          back_aic = back_aic_diag$confusion_matrix[2, 1],
          step_aic = step_aic_diag$confusion_matrix[2, 1],
          forw_bic = forw_bic_diag$confusion_matrix[2, 1],
          back_bic = back_bic_diag$confusion_matrix[2, 1],
-         step_bic = step_bic_diag$confusion_matrix[2, 1],
-         opt_forw_aic = opt_forw_aic_diag$confusion_matrix[2, 1],
-         opt_back_aic = opt_back_aic_diag$confusion_matrix[2, 1],
-         opt_step_aic = opt_step_aic_diag$confusion_matrix[2, 1],
-         opt_forw_bic = opt_forw_bic_diag$confusion_matrix[2, 1],
-         opt_back_bic = opt_back_bic_diag$confusion_matrix[2, 1],
-         opt_step_bic = opt_step_bic_diag$confusion_matrix[2, 1])
+         step_bic = step_bic_diag$confusion_matrix[2, 1])
 )
-row.names(logistic_results) = c("Forward AIC",
+row.names(logistic_model_results) = c("Forward AIC",
                                 "Backward AIC",
                                 "Stepwise AIC",
                                 "Forward BIC",
                                 "Backward BIC",
-                                "Stepwise BIC",
-                                "Forward AIC (Optimal Cutoff)",
-                                "Backward AIC (Optimal Cutoff)",
-                                "Stepwise AIC (Optimal Cutoff)",
-                                "Forward BIC (Optimal Cutoff)",
-                                "Backward BIC (Optimal Cutoff)",
-                                "Stepwise BIC (Optimal Cutoff)")
-logistic_col_names = c("Cutoff",
-                       "Misclassification Rate",
+                                "Stepwise BIC")
+logistic_col_names = c("5-Fold CV",
+                       "p",
                        "Sensitivity",
                        "Specificity",
-                       "p",
                        "False Negatives",
                        "False Positives")
 ```
 
 ```{r}
 library(knitr)
-kable(logistic_results, col.names = logistic_col_names, 
+kable(logistic_model_results, col.names = logistic_col_names, 
       caption = "Logistic Regression Model Result Summary")
 ```
 
-### And the Winning Logistic Regression Model is... ###
+Based on our cross-validated misclassification rates, we choose the *Forward AIC* model (note that the *Stepwise AIC* model is equivalent)
 
-Forward-search BIC model with an optimal cutoff of 0.3.
+\[
+\log \bigg(\frac{P[DivWin = 1]}{1 - P[DivWin = 1]} \bigg) = \beta_0 + \beta_W W + \beta_{X2B} X2B + \beta_{HA} HA + \beta_{DP} DP + \beta_{GIDP} GIDP
+\]
+
+where the predictors are
+
+- `W` - wins
+- `X2B` - doubles
+- `HA` - hits against
+- `DP` - double plays
+- `GIDP` - ground into double plays.
+
+With that, we see that the *Forward BIC* model is fairly close in misclassification, but has half the number of $\beta$ parameters.  Here, the *Forward BIC* model is
 
 \[
 \log \bigg(\frac{P[DivWin = 1]}{1 - P[DivWin = 1]} \bigg) = \beta_0 + \beta_W W + \beta_{X2B} X2B
+\]
+
+where the predictors are
+
+- `W` - wins
+- `X2B` - doubles.
+
+We note that the smaller BIC model is nested within the larger AIC model, so we can perform a Likelihood-Ratio Test to determine if the additional parameters in the AIC model are significant.
+
+```{r}
+(forw_likelihood_ratio = anova(forw_bic_model, forw_aic_model, test = "LRT"))
+```
+
+If we commandeer the MLR thred's value for $\alpha = 0.05$ and compare it to our test's p-value of `r forw_likelihood_ratio[2, "Pr(>Chi)"]`, we would reject the null hypothesis $H_0 : \beta_{HA} = \beta_{DP} = \beta_{GIDP} = 0$ and declare our preference for the larger forward-search AIC model.
+
+### And the Winning Logistic Regression Model is... ###
+
+The forward-search AIC model.
+
+\[
+\log \bigg(\frac{P[DivWin = 1]}{1 - P[DivWin = 1]} \bigg) = \beta_0 + \beta_W W + \beta_{X2B} X2B + \beta_{HA} HA + \beta_{DP} DP + \beta_{GIDP} GIDP
 \]
 
 ***
 
 ## Discussion ##
 
-We choose the forward-search BIC model with a cutoff value of 0.3 as our best predictive model.  While there are a few models that have an equivalent minimal misclassification rate, the forward BIC model has the least number of predictors and therefore the easiest to interpret.  Additionally, the sensitivity and specificity (false negatives and false positives, respectively) are minimized and nearly equivalent.
+We choose the forward-search AIC model depite having twice as many predictors as the forward-search BIC model and a near-identical 5-fold cross-validation misclassification rate.  The Likelihood Ratio test comparing the two models tells us that the additional 3 predictors are significant with a p-value of `r forw_likelihood_ratio[2, "Pr(>Chi)"]`.  For our test dataset, we see that this performs well, correctly classifying 80 out of 90 division winners with a cutoff value of 0.5.
 
-Our winning model tells us that a team's win total `W` and double tally `X2B` has a significant relationship with that team's probability of winning their division.  The relationship with `W` is fairly self evident and quite boring given the definition of a division winner - the team  with the most wins in their division at the end of the season is declared the division champ.  Interestingly, however, there is a somewhat-significant negative relationship with doubles.  That is, given two teams with the same number of wins, the team with the *fewer* number of doubles would have a higher probability of winning their division.  What does this mean?  Well, one explanation is, given all else equal, it's possible the game favors teams proficient at small ball - being able to manufacture runs with walks, bunts, steals, and sacrifice flies - rather than a team's capacity of lacing ropes to the alley in left-center.
+```{r}
+forw_aic_diag$confusion_matrix
+```
+
+The interpretation of our winning model tells us that a team's win total `W`, double tally `X2B`, hits against the team's pitchers `HA`, turned double plays `DB`, and the number of times the team has grounded into double plays `GIDP` all have have a significant relationship with that team's probability of winning their division.  The relationship with `W` is fairly self evident and quite boring given the definition of a division winner - the team  with the most wins in their division at the end of the season is declared the division champ.  Indeed, this is the most significant $\beta$ parameter by far given the remaining coefficients, with a Wald test p-value of `r summary(forw_aic_model)$coefficients["W", "Pr(>|z|)"]`.
+
+Interestingly, the remaining predictors all have relationships with `DivWin` inverse to what we would expect. For instance, there is a somewhat-significant negative relationship with doubles, given the remaining predictors.  That is, given two teams with the same number of wins, hits against, double plays, and GIDPs, the team with the *fewer* number of doubles would have a higher probability of winning their division.  What does this mean?  Well, one explanation could be, given all else equal, the game favors teams proficient at small ball - being able to manufacture runs with walks, bunts, steals, and sacrifice flies - rather than a team's capacity of lacing ropes to the alley in left-center.
+
+Similarly, we would expect that the number of double plays a team successfully executes wouldn't hinder their odds at winning a division.  But holding the remaining predictors constant, that's exactly what this model says.  So despite the small number of predictors for this model - while it indeed predicts well - it seems it is still tricky to interpret.
 
 ***
 
 # Apendices #
 
 ## Appendix A - Logistic Regression Models
-
-### Classify and Diagnose Function {#classify_and_diagnose}
-
-```{r ref.label = "classify_and_diagnose", eval = FALSE}
-```
-
-### Optimal Logistic Cutoff Function {#opt_logistic_cutoff}
-
-```{r ref.label = "opt_logistic_cutoff", eval = FALSE}
-```
 
 ### Backward Search: BIC Model
 
@@ -1376,16 +1246,6 @@ Our winning model tells us that a team's win total `W` and double tally `X2B` ha
 ```{r}
 summary(back_bic_model)
 back_bic_diag
-```
-
-#### Optimal Cutoff
-
-```{r ref.label = "opt_glm_back_bic", eval = FALSE}
-```
-
-```{r}
-opt_logistic_cutoff(back_bic_model, cut_start = 0.1, cut_end = 0.8)
-opt_back_bic_diag$confusion_matrix
 ```
 
 ### Forward Search: BIC Model
@@ -1398,16 +1258,6 @@ summary(forw_bic_model)
 forw_bic_diag
 ```
 
-#### Optimal Cutoff
-
-```{r ref.label = "opt_glm_forw_bic", eval = FALSE}
-```
-
-```{r}
-opt_logistic_cutoff(forw_bic_model, cut_start = 0.1, cut_end = 0.8)
-opt_forw_bic_diag$confusion_matrix
-```
-
 ### Stepwise Search: BIC Model
 
 ```{r ref.label = "glm_step_bic", eval = FALSE}
@@ -1416,16 +1266,6 @@ opt_forw_bic_diag$confusion_matrix
 ```{r}
 summary(step_bic_model)
 step_bic_diag
-```
-
-#### Optimal Cutoff
-
-```{r ref.label = "opt_glm_step_bic", eval = FALSE}
-```
-
-```{r}
-opt_logistic_cutoff(step_bic_model, cut_start = 0.1, cut_end = 0.8)
-opt_step_bic_diag$confusion_matrix
 ```
 
 ### Backward Search: AIC Model
@@ -1438,16 +1278,6 @@ summary(back_aic_model)
 back_aic_diag <- classify_and_diagnose(back_aic_model)
 ```
 
-#### Optimal Cutoff
-
-```{r ref.label = "opt_glm_back_aic", eval = FALSE}
-```
-
-```{r}
-opt_logistic_cutoff(back_aic_model, cut_start = 0.1, cut_end = 0.8)
-opt_back_aic_diag$confusion_matrix
-```
-
 ### Forward Search: AIC Model
 
 ```{r ref.label = "glm_forw_aic", eval = FALSE}
@@ -1456,16 +1286,6 @@ opt_back_aic_diag$confusion_matrix
 ```{r}
 summary(forw_aic_model)
 forw_aic_diag
-```
-
-#### Optimal Cutoff
-
-```{r ref.label = "opt_glm_forw_aic", eval = FALSE}
-```
-
-```{r}
-opt_logistic_cutoff(forw_aic_model, cut_start = 0.1, cut_end = 0.8)
-opt_forw_aic_diag$confusion_matrix
 ```
 
 ### Stepwise Search: AIC Model
@@ -1478,14 +1298,16 @@ summary(step_aic_model)
 step_aic_diag
 ```
 
-#### Optimal Cutoff
+## Appendix B - Logistic Regression Diagnostic Functions
 
-```{r ref.label = "opt_glm_step_aic", eval = FALSE}
+### Cross-Validation Misclassification Rate Function {#cross_validiate}
+
+```{r ref.label = "cross_validate", eval = FALSE}
 ```
 
-```{r}
-opt_logistic_cutoff(step_aic_model, cut_start = 0.1, cut_end = 0.8)
-opt_step_aic_diag$confusion_matrix
+### Classify and Diagnose Function {#classify_and_diagnose}
+
+```{r ref.label = "classify_and_diagnose", eval = FALSE}
 ```
 
 ## Appendix B - Data Preparation
